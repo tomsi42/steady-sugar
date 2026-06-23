@@ -158,7 +158,7 @@ export function GraphScreen() {
               xKey="timestamp"
               yKeys={['value']}
               domain={{ x: [domainStart, domainEnd] }}
-              domainPadding={10}
+              domainPadding={{ top: 10, bottom: 8 }}
               axisOptions={{
                 font,
                 tickCount: { x: xTickCount, y: 5 },
@@ -183,20 +183,20 @@ export function GraphScreen() {
                       strokeWidth={2}
                     />
                     {points.value.map((point, i) =>
-                      point.y !== null ? (
+                      point.y !== null && point.yValue !== null ? (
                         <Circle
                           key={i}
                           cx={point.x}
                           cy={point.y}
                           r={5}
-                          color={colorForBloodSugar(bsChartData[i]!.value)}
+                          color={colorForBloodSugar(point.yValue as number)}
                         />
                       ) : null,
                     )}
                     {mealMarkers.map((marker, i) => {
                       const mx = xScale(marker.timestamp.getTime());
                       if (mx < chartBounds.left || mx > chartBounds.right) return null;
-                      const barH = 14;
+                      const barH = 8;
                       const barY = chartBounds.bottom - barH;
                       return (
                         <React.Fragment key={i}>
@@ -206,7 +206,7 @@ export function GraphScreen() {
                               font={font}
                               text={`×${marker.count}`}
                               x={mx + 4}
-                              y={barY + 10}
+                              y={barY + 6}
                               color="#FF8F00"
                             />
                           )}

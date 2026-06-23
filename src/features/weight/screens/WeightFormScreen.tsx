@@ -1,27 +1,21 @@
 import React, { useState, useLayoutEffect } from 'react';
 import {
-  View,
   StyleSheet,
   ScrollView,
   Platform,
-  TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';
-import { Text, TextInput, Button, HelperText, useTheme } from 'react-native-paper';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Text, TextInput, Button, HelperText } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../app/navigation';
 import { useWeightStore } from '../store';
+import {
+  parseDateText,
+  formatDateText,
+  formatDateInput,
+} from '../../../shared/utils/dateTimeText';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WeightForm'>;
-
-const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
-
-function todayAtNoon(): Date {
-  const d = new Date();
-  d.setHours(12, 0, 0, 0);
-  return d;
-}
 
 function dateAtNoon(date: Date): Date {
   const d = new Date(date);
@@ -30,22 +24,20 @@ function dateAtNoon(date: Date): Date {
 }
 
 export function WeightFormScreen({ route, navigation }: Props) {
-  const theme = useTheme();
   const { entryId } = route.params ?? {};
   const entries = useWeightStore((s) => s.entries);
   const add = useWeightStore((s) => s.add);
   const update = useWeightStore((s) => s.update);
 
   const existing = entryId != null ? entries.find((e) => e.id === entryId) : undefined;
+  const initial = existing ? new Date(existing.timestamp) : new Date();
 
   const [valueText, setValueText] = useState(existing ? String(existing.valueKg) : '');
-  const [date, setDate] = useState<Date>(
-    existing ? dateAtNoon(new Date(existing.timestamp)) : todayAtNoon(),
-  );
+  const [dateText, setDateText] = useState(formatDateText(initial));
   const [notes, setNotes] = useState(existing?.notes ?? '');
   const [valueError, setValueError] = useState('');
+  const [dateError, setDateError] = useState('');
   const [softWarning, setSoftWarning] = useState('');
-  const [showPicker, setShowPicker] = useState(false);
 
   const isEdit = existing != null;
 
@@ -63,46 +55,35 @@ export function WeightFormScreen({ route, navigation }: Props) {
     }
   }
 
-  function handlePickerChange(event: DateTimePickerEvent, selected?: Date) {
-    setShowPicker(Platform.OS === 'ios');
-    if (event.type === 'dismissed' || !selected) return;
-    const chosen = dateAtNoon(selected);
-    if (chosen > new Date()) return;
-    setDate(chosen);
-  }
-
   function handleSave() {
     const num = parseFloat(valueText);
     if (!valueText.trim() || isNaN(num)) {
       setValueError('Please enter a weight value');
       return;
     }
-    if (date > new Date()) {
-      setValueError('Date cannot be in the future');
+
+    const parsed = parseDateText(dateText);
+    if (!parsed) {
+      setDateError('Enter date as DD/MM/YYYY');
       return;
     }
+    const ts = dateAtNoon(parsed);
+    if (ts > new Date()) {
+      setDateError('Date cannot be in the future');
+      return;
+    }
+    setDateError('');
 
     const rounded = Math.round(num * 10) / 10;
 
     if (isEdit && existing) {
-      update(existing.id, { valueKg: rounded, notes: notes || '', timestamp: date });
+      update(existing.id, { valueKg: rounded, notes: notes || '', timestamp: ts });
     } else {
-      add({ valueKg: rounded, notes: notes || '', timestamp: date });
+      add({ valueKg: rounded, notes: notes || '', timestamp: ts });
     }
 
     navigation.goBack();
   }
-
-  function formatDate(d: Date): string {
-    return d.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  }
-
-  const minimumDate = new Date(Date.now() - ONE_YEAR_MS);
-  const maximumDate = new Date();
 
   return (
     <KeyboardAvoidingView
@@ -134,24 +115,20 @@ export function WeightFormScreen({ route, navigation }: Props) {
         <Text variant="labelLarge" style={styles.sectionLabel}>
           Date
         </Text>
-        <TouchableOpacity
-          onPress={() => setShowPicker(true)}
-          style={[styles.dateButton, { borderColor: theme.colors.outline }]}
-          testID="date-button"
-        >
-          <Text style={styles.dateText}>{formatDate(date)}</Text>
-        </TouchableOpacity>
-
-        {showPicker && (
-          <DateTimePicker
-            value={date}
-            mode="date"
-            display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-            minimumDate={minimumDate}
-            maximumDate={maximumDate}
-            onChange={handlePickerChange}
-          />
-        )}
+        <TextInput
+          label="DD/MM/YYYY"
+          value={dateText}
+          onChangeText={(v) => {
+            setDateText(formatDateInput(v));
+            setDateError('');
+          }}
+          mode="outlined"
+          keyboardType="number-pad"
+          maxLength={10}
+          error={!!dateError}
+          testID="date-input"
+        />
+        {!!dateError && <HelperText type="error">{dateError}</HelperText>}
 
         <TextInput
           label="Notes (optional)"
@@ -183,13 +160,6 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 40 },
   valueInput: { fontSize: 24 },
   sectionLabel: { marginTop: 20, marginBottom: 8, color: '#757575' },
-  dateButton: {
-    borderWidth: 1,
-    borderRadius: 4,
-    padding: 14,
-    backgroundColor: '#FFFFFF',
-  },
-  dateText: { fontSize: 16 },
   notes: { marginTop: 20 },
   saveButton: { marginTop: 32 },
   saveButtonContent: { paddingVertical: 6 },

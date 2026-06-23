@@ -4,15 +4,21 @@ import {
   StyleSheet,
   ScrollView,
   Platform,
-  TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';
-import { Text, TextInput, Button, SegmentedButtons, HelperText, useTheme } from 'react-native-paper';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Text, TextInput, Button, SegmentedButtons, HelperText } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../app/navigation';
 import type { BloodSugarContext } from '../../../shared/database/schema';
 import { useBloodSugarStore } from '../store';
+import {
+  parseDateText,
+  parseTimeText,
+  formatDateText,
+  formatTimeText,
+  formatDateInput,
+  formatTimeInput,
+} from '../../../shared/utils/dateTimeText';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BloodSugarForm'>;
 
@@ -23,27 +29,22 @@ const CONTEXT_OPTIONS: { value: BloodSugarContext; label: string }[] = [
   { value: 'random', label: 'Random' },
 ];
 
-const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
-
 export function BloodSugarFormScreen({ route, navigation }: Props) {
-  const theme = useTheme();
   const { readingId } = route.params ?? {};
   const readings = useBloodSugarStore((s) => s.readings);
   const add = useBloodSugarStore((s) => s.add);
   const update = useBloodSugarStore((s) => s.update);
 
   const existing = readingId != null ? readings.find((r) => r.id === readingId) : undefined;
+  const initial = existing ? new Date(existing.timestamp) : new Date();
 
   const [valueText, setValueText] = useState(existing ? String(existing.valueMmol) : '');
   const [context, setContext] = useState<BloodSugarContext>(existing?.context ?? 'random');
   const [notes, setNotes] = useState(existing?.notes ?? '');
-  const [timestamp, setTimestamp] = useState<Date>(
-    existing ? new Date(existing.timestamp) : new Date(),
-  );
-
-  const [showPicker, setShowPicker] = useState(false);
-  const [androidPickerMode, setAndroidPickerMode] = useState<'date' | 'time'>('date');
+  const [dateText, setDateText] = useState(formatDateText(initial));
+  const [timeText, setTimeText] = useState(formatTimeText(initial));
   const [valueError, setValueError] = useState('');
+  const [timestampError, setTimestampError] = useState('');
   const [softWarning, setSoftWarning] = useState('');
 
   const isEdit = existing != null;
@@ -62,45 +63,12 @@ export function BloodSugarFormScreen({ route, navigation }: Props) {
     }
   }
 
-  function handleTimestampPress() {
-    if (Platform.OS === 'android') {
-      setAndroidPickerMode('date');
-    }
-    setShowPicker(true);
-  }
-
-  function handlePickerChange(event: DateTimePickerEvent, selected?: Date) {
-    if (Platform.OS === 'android') {
-      if (event.type === 'dismissed') {
-        setShowPicker(false);
-        return;
-      }
-      if (!selected) {
-        setShowPicker(false);
-        return;
-      }
-      if (androidPickerMode === 'date') {
-        // Merge selected date into existing timestamp
-        const next = new Date(timestamp);
-        next.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
-        setTimestamp(next);
-        // Now show time picker
-        setAndroidPickerMode('time');
-        setShowPicker(true);
-      } else {
-        setShowPicker(false);
-        const next = new Date(timestamp);
-        next.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
-        if (next > new Date()) return; // reject future
-        setTimestamp(next);
-      }
-    } else {
-      // iOS: keep picker open, update value continuously
-      if (selected) {
-        if (selected > new Date()) return; // reject future
-        setTimestamp(selected);
-      }
-    }
+  function parseTimestamp(): Date | null {
+    const d = parseDateText(dateText);
+    const t = parseTimeText(timeText);
+    if (!d || !t) return null;
+    d.setHours(t.hours, t.minutes, 0, 0);
+    return d;
   }
 
   function handleSave() {
@@ -109,33 +77,26 @@ export function BloodSugarFormScreen({ route, navigation }: Props) {
       setValueError('Please enter a blood sugar value');
       return;
     }
-    if (timestamp > new Date()) {
-      setValueError('Timestamp cannot be in the future');
+
+    const ts = parseTimestamp();
+    if (!ts) {
+      setTimestampError('Enter date as DD/MM/YYYY and time as HH:MM');
       return;
     }
+    if (ts > new Date()) {
+      setTimestampError('Timestamp cannot be in the future');
+      return;
+    }
+    setTimestampError('');
 
     if (isEdit && existing) {
-      update(existing.id, { valueMmol: num, context, notes: notes || '', timestamp });
+      update(existing.id, { valueMmol: num, context, notes: notes || '', timestamp: ts });
     } else {
-      add({ valueMmol: num, context, notes: notes || '', timestamp });
+      add({ valueMmol: num, context, notes: notes || '', timestamp: ts });
     }
 
     navigation.goBack();
   }
-
-  function formatTimestamp(date: Date): string {
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
-  }
-
-  const minimumDate = new Date(Date.now() - ONE_YEAR_MS);
-  const maximumDate = new Date();
 
   return (
     <KeyboardAvoidingView
@@ -181,41 +142,35 @@ export function BloodSugarFormScreen({ route, navigation }: Props) {
         <Text variant="labelLarge" style={styles.sectionLabel}>
           When
         </Text>
-        <TouchableOpacity
-          onPress={handleTimestampPress}
-          style={[styles.timestampButton, { borderColor: theme.colors.outline }]}
-          testID="timestamp-button"
-        >
-          <Text style={styles.timestampText}>{formatTimestamp(timestamp)}</Text>
-        </TouchableOpacity>
-
-        {showPicker && Platform.OS === 'android' && (
-          <DateTimePicker
-            value={timestamp}
-            mode={androidPickerMode}
-            is24Hour
-            minimumDate={minimumDate}
-            maximumDate={maximumDate}
-            onChange={handlePickerChange}
+        <View style={styles.dateTimeRow}>
+          <TextInput
+            label="DD/MM/YYYY"
+            value={dateText}
+            onChangeText={(v) => {
+              setDateText(formatDateInput(v));
+              setTimestampError('');
+            }}
+            mode="outlined"
+            keyboardType="number-pad"
+            maxLength={10}
+            style={styles.dateInput}
+            testID="date-input"
           />
-        )}
-
-        {showPicker && Platform.OS === 'ios' && (
-          <View style={styles.iosPickerContainer}>
-            <DateTimePicker
-              value={timestamp}
-              mode="datetime"
-              display="spinner"
-              is24Hour
-              minimumDate={minimumDate}
-              maximumDate={maximumDate}
-              onChange={handlePickerChange}
-            />
-            <Button onPress={() => setShowPicker(false)} mode="text">
-              Done
-            </Button>
-          </View>
-        )}
+          <TextInput
+            label="HH:MM"
+            value={timeText}
+            onChangeText={(v) => {
+              setTimeText(formatTimeInput(v));
+              setTimestampError('');
+            }}
+            mode="outlined"
+            keyboardType="number-pad"
+            maxLength={5}
+            style={styles.timeInput}
+            testID="time-input"
+          />
+        </View>
+        {!!timestampError && <HelperText type="error">{timestampError}</HelperText>}
 
         <TextInput
           label="Notes (optional)"
@@ -248,19 +203,9 @@ const styles = StyleSheet.create({
   valueInput: { fontSize: 24 },
   sectionLabel: { marginTop: 20, marginBottom: 8, color: '#757575' },
   segmented: { flexWrap: 'wrap' },
-  timestampButton: {
-    borderWidth: 1,
-    borderRadius: 4,
-    padding: 14,
-    backgroundColor: '#FFFFFF',
-  },
-  timestampText: { fontSize: 16 },
-  iosPickerContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    marginTop: 8,
-    overflow: 'hidden',
-  },
+  dateTimeRow: { flexDirection: 'row', gap: 12 },
+  dateInput: { flex: 3 },
+  timeInput: { flex: 2 },
   notes: { marginTop: 20 },
   saveButton: { marginTop: 32 },
   saveButtonContent: { paddingVertical: 6 },

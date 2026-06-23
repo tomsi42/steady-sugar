@@ -7,12 +7,17 @@ import { StatusBar } from 'expo-status-bar';
 import { theme } from './src/app/theme';
 import { AppNavigator } from './src/app/navigation';
 import { initDatabase } from './src/shared/database/client';
+import { useSettingsStore } from './src/features/settings/store';
 
 export default function App() {
   const [dbReady, setDbReady] = useState(false);
+  const [isOnboarded, setIsOnboarded] = useState(false);
 
   useEffect(() => {
     initDatabase();
+    useSettingsStore.getState().load();
+    const s = useSettingsStore.getState().settings;
+    setIsOnboarded(s !== null && s.userName.length > 0);
     setDbReady(true);
   }, []);
 
@@ -28,7 +33,7 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <PaperProvider theme={theme}>
         <StatusBar style="auto" />
-        <AppNavigator />
+        <AppNavigator isOnboarded={isOnboarded} />
       </PaperProvider>
     </GestureHandlerRootView>
   );

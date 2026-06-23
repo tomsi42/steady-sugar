@@ -4,16 +4,22 @@ import {
   StyleSheet,
   ScrollView,
   Platform,
-  TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';
-import { Text, TextInput, Button, HelperText, Chip, useTheme } from 'react-native-paper';
-import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Text, TextInput, Button, HelperText, Chip } from 'react-native-paper';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../app/navigation';
 import type { FoodCategory } from '../../../shared/database/schema';
 import { useFoodLogStore } from '../store';
 import { CATEGORY_COLORS, CATEGORY_LABELS } from '../utils/categoryColors';
+import {
+  parseDateText,
+  parseTimeText,
+  formatDateText,
+  formatTimeText,
+  formatDateInput,
+  formatTimeInput,
+} from '../../../shared/utils/dateTimeText';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'FoodForm'>;
 
@@ -27,25 +33,21 @@ const CATEGORIES: FoodCategory[] = [
   'alcohol',
 ];
 
-const ONE_YEAR_MS = 365 * 24 * 60 * 60 * 1000;
-
 export function FoodFormScreen({ route, navigation }: Props) {
-  const theme = useTheme();
   const { entryId } = route.params ?? {};
   const entries = useFoodLogStore((s) => s.entries);
   const add = useFoodLogStore((s) => s.add);
   const update = useFoodLogStore((s) => s.update);
 
   const existing = entryId != null ? entries.find((e) => e.id === entryId) : undefined;
+  const initial = existing ? new Date(existing.timestamp) : new Date();
 
   const [name, setName] = useState(existing?.name ?? '');
   const [category, setCategory] = useState<FoodCategory>(existing?.category ?? 'snack');
-  const [timestamp, setTimestamp] = useState<Date>(
-    existing ? new Date(existing.timestamp) : new Date(),
-  );
+  const [dateText, setDateText] = useState(formatDateText(initial));
+  const [timeText, setTimeText] = useState(formatTimeText(initial));
   const [nameError, setNameError] = useState('');
-  const [showPicker, setShowPicker] = useState(false);
-  const [androidPickerMode, setAndroidPickerMode] = useState<'date' | 'time'>('date');
+  const [timestampError, setTimestampError] = useState('');
 
   const isEdit = existing != null;
 
@@ -53,40 +55,12 @@ export function FoodFormScreen({ route, navigation }: Props) {
     navigation.setOptions({ title: isEdit ? 'Edit Food / Drink' : 'Log Food / Drink' });
   }, [navigation, isEdit]);
 
-  function handleTimestampPress() {
-    if (Platform.OS === 'android') setAndroidPickerMode('date');
-    setShowPicker(true);
-  }
-
-  function handlePickerChange(event: DateTimePickerEvent, selected?: Date) {
-    if (Platform.OS === 'android') {
-      if (event.type === 'dismissed') {
-        setShowPicker(false);
-        return;
-      }
-      if (!selected) {
-        setShowPicker(false);
-        return;
-      }
-      if (androidPickerMode === 'date') {
-        const next = new Date(timestamp);
-        next.setFullYear(selected.getFullYear(), selected.getMonth(), selected.getDate());
-        setTimestamp(next);
-        setAndroidPickerMode('time');
-        setShowPicker(true);
-      } else {
-        setShowPicker(false);
-        const next = new Date(timestamp);
-        next.setHours(selected.getHours(), selected.getMinutes(), 0, 0);
-        if (next > new Date()) return;
-        setTimestamp(next);
-      }
-    } else {
-      if (selected) {
-        if (selected > new Date()) return;
-        setTimestamp(selected);
-      }
-    }
+  function parseTimestamp(): Date | null {
+    const d = parseDateText(dateText);
+    const t = parseTimeText(timeText);
+    if (!d || !t) return null;
+    d.setHours(t.hours, t.minutes, 0, 0);
+    return d;
   }
 
   function handleSave() {
@@ -94,33 +68,26 @@ export function FoodFormScreen({ route, navigation }: Props) {
       setNameError('Please enter a name for this entry');
       return;
     }
-    if (timestamp > new Date()) {
-      setNameError('Timestamp cannot be in the future');
+
+    const ts = parseTimestamp();
+    if (!ts) {
+      setTimestampError('Enter date as DD/MM/YYYY and time as HH:MM');
       return;
     }
+    if (ts > new Date()) {
+      setTimestampError('Timestamp cannot be in the future');
+      return;
+    }
+    setTimestampError('');
 
     if (isEdit && existing) {
-      update(existing.id, { name: name.trim(), category, timestamp });
+      update(existing.id, { name: name.trim(), category, timestamp: ts });
     } else {
-      add({ name: name.trim(), category, timestamp });
+      add({ name: name.trim(), category, timestamp: ts });
     }
 
     navigation.goBack();
   }
-
-  function formatTimestamp(date: Date): string {
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-    });
-  }
-
-  const minimumDate = new Date(Date.now() - ONE_YEAR_MS);
-  const maximumDate = new Date();
 
   return (
     <KeyboardAvoidingView
@@ -184,41 +151,35 @@ export function FoodFormScreen({ route, navigation }: Props) {
         <Text variant="labelLarge" style={styles.sectionLabel}>
           When
         </Text>
-        <TouchableOpacity
-          onPress={handleTimestampPress}
-          style={[styles.timestampButton, { borderColor: theme.colors.outline }]}
-          testID="timestamp-button"
-        >
-          <Text style={styles.timestampText}>{formatTimestamp(timestamp)}</Text>
-        </TouchableOpacity>
-
-        {showPicker && Platform.OS === 'android' && (
-          <DateTimePicker
-            value={timestamp}
-            mode={androidPickerMode}
-            is24Hour
-            minimumDate={minimumDate}
-            maximumDate={maximumDate}
-            onChange={handlePickerChange}
+        <View style={styles.dateTimeRow}>
+          <TextInput
+            label="DD/MM/YYYY"
+            value={dateText}
+            onChangeText={(v) => {
+              setDateText(formatDateInput(v));
+              setTimestampError('');
+            }}
+            mode="outlined"
+            keyboardType="number-pad"
+            maxLength={10}
+            style={styles.dateInput}
+            testID="date-input"
           />
-        )}
-
-        {showPicker && Platform.OS === 'ios' && (
-          <View style={styles.iosPickerContainer}>
-            <DateTimePicker
-              value={timestamp}
-              mode="datetime"
-              display="spinner"
-              is24Hour
-              minimumDate={minimumDate}
-              maximumDate={maximumDate}
-              onChange={handlePickerChange}
-            />
-            <Button onPress={() => setShowPicker(false)} mode="text">
-              Done
-            </Button>
-          </View>
-        )}
+          <TextInput
+            label="HH:MM"
+            value={timeText}
+            onChangeText={(v) => {
+              setTimeText(formatTimeInput(v));
+              setTimestampError('');
+            }}
+            mode="outlined"
+            keyboardType="number-pad"
+            maxLength={5}
+            style={styles.timeInput}
+            testID="time-input"
+          />
+        </View>
+        {!!timestampError && <HelperText type="error">{timestampError}</HelperText>}
 
         <Button
           mode="contained"
@@ -242,19 +203,9 @@ const styles = StyleSheet.create({
   categoryChip: { marginRight: 0 },
   categoryChipText: { fontSize: 13 },
   nameInput: { fontSize: 16, marginTop: 20 },
-  timestampButton: {
-    borderWidth: 1,
-    borderRadius: 4,
-    padding: 14,
-    backgroundColor: '#FFFFFF',
-  },
-  timestampText: { fontSize: 16 },
-  iosPickerContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 8,
-    marginTop: 8,
-    overflow: 'hidden',
-  },
+  dateTimeRow: { flexDirection: 'row', gap: 12 },
+  dateInput: { flex: 3 },
+  timeInput: { flex: 2 },
   saveButton: { marginTop: 32 },
   saveButtonContent: { paddingVertical: 6 },
 });

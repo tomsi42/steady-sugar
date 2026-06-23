@@ -11,8 +11,14 @@ import { SettingsScreen } from '../features/settings/screens/SettingsScreen';
 import { BloodSugarFormScreen } from '../features/blood_sugar/screens/BloodSugarFormScreen';
 import { FoodFormScreen } from '../features/food_log/screens/FoodFormScreen';
 import { WeightFormScreen } from '../features/weight/screens/WeightFormScreen';
+import { OnboardingWelcomeScreen } from '../features/settings/screens/OnboardingWelcomeScreen';
+import { OnboardingNameScreen } from '../features/settings/screens/OnboardingNameScreen';
+import { OnboardingTargetRangeScreen } from '../features/settings/screens/OnboardingTargetRangeScreen';
 
 export type RootStackParamList = {
+  OnboardingWelcome: undefined;
+  OnboardingName: undefined;
+  OnboardingTargetRange: { name: string };
   Tabs: undefined;
   Settings: undefined;
   BloodSugarForm: { readingId?: number } | undefined;
@@ -75,10 +81,24 @@ function TabNavigator() {
   );
 }
 
-export function AppNavigator() {
+export function AppNavigator({ isOnboarded }: { isOnboarded: boolean }) {
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator
+        initialRouteName={isOnboarded ? 'Tabs' : 'OnboardingWelcome'}
+        screenOptions={{ headerShown: false }}
+      >
+        <Stack.Screen name="OnboardingWelcome" component={OnboardingWelcomeScreen} />
+        <Stack.Screen
+          name="OnboardingName"
+          component={OnboardingNameScreen}
+          options={{ headerShown: true, title: '' }}
+        />
+        <Stack.Screen
+          name="OnboardingTargetRange"
+          component={OnboardingTargetRangeScreen}
+          options={{ headerShown: true, title: '' }}
+        />
         <Stack.Screen name="Tabs" component={TabNavigator} />
         <Stack.Screen
           name="Settings"
