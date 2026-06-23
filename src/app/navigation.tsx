@@ -1,7 +1,8 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, useNavigation } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import type { NavigationProp } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from 'react-native-paper';
 
@@ -37,25 +38,26 @@ const Tab = createBottomTabNavigator<TabParamList>();
 function TabNavigator() {
   const theme = useTheme();
 
-  function SettingsButton({ navigation }: { navigation: any }) {
+  function SettingsButton() {
+    const nav = useNavigation<NavigationProp<RootStackParamList>>();
     return (
       <MaterialCommunityIcons
         name="cog-outline"
         size={24}
         color={theme.colors.primary}
         style={{ marginRight: 16 }}
-        onPress={() => navigation.navigate('Settings')}
+        onPress={() => nav.navigate('Settings')}
       />
     );
   }
 
   return (
     <Tab.Navigator
-      screenOptions={({ navigation }) => ({
+      screenOptions={{
         tabBarActiveTintColor: theme.colors.primary,
         tabBarInactiveTintColor: '#757575',
-        headerRight: () => <SettingsButton navigation={navigation} />,
-      })}
+        headerRight: () => <SettingsButton />,
+      }}
     >
       <Tab.Screen
         name="Log"

@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "sw-init",
-    "slug": "sw-init",
+    "name": "SugarWise",
+    "slug": "sugar-wise",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -22,8 +22,7 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-sqlite",
-      "@react-native-community/datetimepicker"
+      "expo-sqlite"
     ]
   }
 }
