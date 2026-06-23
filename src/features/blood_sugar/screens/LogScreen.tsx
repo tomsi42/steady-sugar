@@ -6,10 +6,13 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList, TabParamList } from '../../../app/navigation';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import type { BloodSugarReading } from '../../../shared/database/schema';
+import type { LogEntry } from '../../../shared/types/logEntry';
+import { entryTimestamp } from '../../../shared/types/logEntry';
+import { groupEntriesByDate, type GroupedEntries } from '../../../shared/utils/groupEntriesByDate';
 import { useBloodSugarStore } from '../store';
+import { useFoodLogStore } from '../../food_log/store';
 import { BloodSugarCard } from '../components/BloodSugarCard';
-import { groupReadingsByDate, type GroupedReadings } from '../utils/groupReadingsByDate';
+import { FoodCard } from '../../food_log/components/FoodCard';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Log'>,
@@ -18,78 +21,115 @@ type Props = CompositeScreenProps<
 
 export function LogScreen({ navigation }: Props) {
   const readings = useBloodSugarStore((s) => s.readings);
-  const load = useBloodSugarStore((s) => s.load);
-  const remove = useBloodSugarStore((s) => s.remove);
-  const restore = useBloodSugarStore((s) => s.restore);
+  const bloodSugarLoad = useBloodSugarStore((s) => s.load);
+  const bloodSugarRemove = useBloodSugarStore((s) => s.remove);
+  const bloodSugarRestore = useBloodSugarStore((s) => s.restore);
+
+  const foodEntries = useFoodLogStore((s) => s.entries);
+  const foodLoad = useFoodLogStore((s) => s.load);
+  const foodRemove = useFoodLogStore((s) => s.remove);
+  const foodRestore = useFoodLogStore((s) => s.restore);
 
   const [fabOpen, setFabOpen] = useState(false);
-  const [deletedReading, setDeletedReading] = useState<BloodSugarReading | null>(null);
+  const [deletedEntry, setDeletedEntry] = useState<LogEntry | null>(null);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
 
-  const swipeableRefs = useRef<Map<number, Swipeable>>(new Map());
+  const swipeableRefs = useRef<Map<string, Swipeable>>(new Map());
 
   useEffect(() => {
-    load();
-  }, [load]);
+    bloodSugarLoad();
+    foodLoad();
+  }, [bloodSugarLoad, foodLoad]);
 
-  const groups: GroupedReadings[] = groupReadingsByDate(readings);
+  const allEntries: LogEntry[] = [
+    ...readings.map((r): LogEntry => ({ type: 'blood_sugar', data: r })),
+    ...foodEntries.map((e): LogEntry => ({ type: 'food', data: e })),
+  ].sort((a, b) => entryTimestamp(b).getTime() - entryTimestamp(a).getTime());
 
-  function handleEdit(reading: BloodSugarReading) {
-    navigation.navigate('BloodSugarForm', { readingId: reading.id });
+  const groups: GroupedEntries[] = groupEntriesByDate(allEntries);
+
+  function entryKey(entry: LogEntry): string {
+    return `${entry.type}-${entry.data.id}`;
   }
 
-  function handleDelete(reading: BloodSugarReading) {
-    remove(reading.id);
-    setDeletedReading(reading);
+  function handleEdit(entry: LogEntry) {
+    if (entry.type === 'blood_sugar') {
+      navigation.navigate('BloodSugarForm', { readingId: entry.data.id });
+    } else {
+      navigation.navigate('FoodForm', { entryId: entry.data.id });
+    }
+  }
+
+  function handleDelete(entry: LogEntry) {
+    if (entry.type === 'blood_sugar') {
+      bloodSugarRemove(entry.data.id);
+    } else {
+      foodRemove(entry.data.id);
+    }
+    setDeletedEntry(entry);
     setSnackbarVisible(true);
   }
 
   function handleUndo() {
-    if (deletedReading) {
-      restore({
-        valueMmol: deletedReading.valueMmol,
-        timestamp: deletedReading.timestamp,
-        context: deletedReading.context,
-        notes: deletedReading.notes,
-      });
-      setDeletedReading(null);
+    if (deletedEntry) {
+      if (deletedEntry.type === 'blood_sugar') {
+        const d = deletedEntry.data;
+        bloodSugarRestore({
+          valueMmol: d.valueMmol,
+          timestamp: d.timestamp,
+          context: d.context,
+          notes: d.notes,
+        });
+      } else {
+        const d = deletedEntry.data;
+        foodRestore({
+          name: d.name,
+          category: d.category,
+          timestamp: d.timestamp,
+        });
+      }
+      setDeletedEntry(null);
     }
     setSnackbarVisible(false);
   }
 
-  function renderRightActions(reading: BloodSugarReading) {
+  function renderRightActions(entry: LogEntry) {
     return (
       <TouchableOpacity
         style={styles.deleteAction}
-        onPress={() => handleDelete(reading)}
-        testID={`delete-action-${reading.id}`}
+        onPress={() => handleDelete(entry)}
+        testID={`delete-action-${entryKey(entry)}`}
       >
         <Text style={styles.deleteActionText}>Delete</Text>
       </TouchableOpacity>
     );
   }
 
-  function renderItem({ item }: { item: BloodSugarReading }) {
+  function renderItem({ item }: { item: LogEntry }) {
+    const key = entryKey(item);
     return (
       <Swipeable
         ref={(ref) => {
-          if (ref) swipeableRefs.current.set(item.id, ref);
-          else swipeableRefs.current.delete(item.id);
+          if (ref) swipeableRefs.current.set(key, ref);
+          else swipeableRefs.current.delete(key);
         }}
         renderRightActions={() => renderRightActions(item)}
         onSwipeableOpen={() => {
-          // Close other open swipeables
-          swipeableRefs.current.forEach((sw, id) => {
-            if (id !== item.id) sw.close();
+          swipeableRefs.current.forEach((sw, k) => {
+            if (k !== key) sw.close();
           });
         }}
       >
-        <BloodSugarCard reading={item} onPress={() => handleEdit(item)} />
+        {item.type === 'blood_sugar' ? (
+          <BloodSugarCard reading={item.data} onPress={() => handleEdit(item)} />
+        ) : (
+          <FoodCard entry={item.data} onPress={() => handleEdit(item)} />
+        )}
       </Swipeable>
     );
   }
 
-  function renderSectionHeader({ section }: { section: GroupedReadings }) {
+  function renderSectionHeader({ section }: { section: GroupedEntries }) {
     return (
       <View style={styles.sectionHeader}>
         <Text variant="titleSmall" style={styles.sectionHeaderText}>
@@ -101,24 +141,24 @@ export function LogScreen({ navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      {readings.length === 0 ? (
+      {allEntries.length === 0 ? (
         <View style={styles.emptyContainer} testID="empty-state">
           <Text variant="bodyLarge" style={styles.emptyText}>
             No data yet
           </Text>
           <Text variant="bodyMedium" style={styles.emptySubtext}>
-            Tap + to log your first reading
+            Tap + to log your first entry
           </Text>
         </View>
       ) : (
         <SectionList
           sections={groups}
-          keyExtractor={(item) => String(item.id)}
+          keyExtractor={(item) => entryKey(item)}
           renderItem={renderItem}
           renderSectionHeader={renderSectionHeader}
           ItemSeparatorComponent={() => <Divider />}
           contentContainerStyle={styles.listContent}
-          testID="readings-list"
+          testID="entries-list"
         />
       )}
 
@@ -142,10 +182,12 @@ export function LogScreen({ navigation }: Props) {
           <Divider />
           <List.Item
             title="Food / Drink"
-            description="Coming soon"
-            left={(props) => <List.Icon {...props} icon="food" color="#BDBDBD" />}
-            titleStyle={styles.disabledText}
-            descriptionStyle={styles.disabledText}
+            description="Log a meal or drink"
+            left={(props) => <List.Icon {...props} icon="food" color="#26A69A" />}
+            onPress={() => {
+              setFabOpen(false);
+              navigation.navigate('FoodForm', {});
+            }}
             testID="fab-option-food"
           />
           <Divider />
@@ -174,7 +216,7 @@ export function LogScreen({ navigation }: Props) {
         action={{ label: 'Undo', onPress: handleUndo }}
         testID="delete-snackbar"
       >
-        Reading deleted
+        Entry deleted
       </Snackbar>
     </View>
   );

@@ -9,11 +9,13 @@ import { LogScreen } from '../features/blood_sugar/screens/LogScreen';
 import { GraphScreen } from '../features/graph/screens/GraphScreen';
 import { SettingsScreen } from '../features/settings/screens/SettingsScreen';
 import { BloodSugarFormScreen } from '../features/blood_sugar/screens/BloodSugarFormScreen';
+import { FoodFormScreen } from '../features/food_log/screens/FoodFormScreen';
 
 export type RootStackParamList = {
   Tabs: undefined;
   Settings: undefined;
   BloodSugarForm: { readingId?: number } | undefined;
+  FoodForm: { entryId?: number } | undefined;
 };
 
 export type TabParamList = {
@@ -85,6 +87,11 @@ export function AppNavigator() {
           name="BloodSugarForm"
           component={BloodSugarFormScreen}
           options={{ headerShown: true, title: 'Log Blood Sugar' }}
+        />
+        <Stack.Screen
+          name="FoodForm"
+          component={FoodFormScreen}
+          options={{ headerShown: true, title: 'Log Food / Drink' }}
         />
       </Stack.Navigator>
     </NavigationContainer>
