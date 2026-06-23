@@ -10,12 +10,14 @@ import { GraphScreen } from '../features/graph/screens/GraphScreen';
 import { SettingsScreen } from '../features/settings/screens/SettingsScreen';
 import { BloodSugarFormScreen } from '../features/blood_sugar/screens/BloodSugarFormScreen';
 import { FoodFormScreen } from '../features/food_log/screens/FoodFormScreen';
+import { WeightFormScreen } from '../features/weight/screens/WeightFormScreen';
 
 export type RootStackParamList = {
   Tabs: undefined;
   Settings: undefined;
   BloodSugarForm: { readingId?: number } | undefined;
   FoodForm: { entryId?: number } | undefined;
+  WeightForm: { entryId?: number } | undefined;
 };
 
 export type TabParamList = {
@@ -92,6 +94,11 @@ export function AppNavigator() {
           name="FoodForm"
           component={FoodFormScreen}
           options={{ headerShown: true, title: 'Log Food / Drink' }}
+        />
+        <Stack.Screen
+          name="WeightForm"
+          component={WeightFormScreen}
+          options={{ headerShown: true, title: 'Log Weight' }}
         />
       </Stack.Navigator>
     </NavigationContainer>

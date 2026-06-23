@@ -11,8 +11,10 @@ import { entryTimestamp } from '../../../shared/types/logEntry';
 import { groupEntriesByDate, type GroupedEntries } from '../../../shared/utils/groupEntriesByDate';
 import { useBloodSugarStore } from '../store';
 import { useFoodLogStore } from '../../food_log/store';
+import { useWeightStore } from '../../weight/store';
 import { BloodSugarCard } from '../components/BloodSugarCard';
 import { FoodCard } from '../../food_log/components/FoodCard';
+import { WeightCard } from '../../weight/components/WeightCard';
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Log'>,
@@ -30,6 +32,11 @@ export function LogScreen({ navigation }: Props) {
   const foodRemove = useFoodLogStore((s) => s.remove);
   const foodRestore = useFoodLogStore((s) => s.restore);
 
+  const weightEntries = useWeightStore((s) => s.entries);
+  const weightLoad = useWeightStore((s) => s.load);
+  const weightRemove = useWeightStore((s) => s.remove);
+  const weightRestore = useWeightStore((s) => s.restore);
+
   const [fabOpen, setFabOpen] = useState(false);
   const [deletedEntry, setDeletedEntry] = useState<LogEntry | null>(null);
   const [snackbarVisible, setSnackbarVisible] = useState(false);
@@ -39,11 +46,13 @@ export function LogScreen({ navigation }: Props) {
   useEffect(() => {
     bloodSugarLoad();
     foodLoad();
-  }, [bloodSugarLoad, foodLoad]);
+    weightLoad();
+  }, [bloodSugarLoad, foodLoad, weightLoad]);
 
   const allEntries: LogEntry[] = [
     ...readings.map((r): LogEntry => ({ type: 'blood_sugar', data: r })),
     ...foodEntries.map((e): LogEntry => ({ type: 'food', data: e })),
+    ...weightEntries.map((w): LogEntry => ({ type: 'weight', data: w })),
   ].sort((a, b) => entryTimestamp(b).getTime() - entryTimestamp(a).getTime());
 
   const groups: GroupedEntries[] = groupEntriesByDate(allEntries);
@@ -55,16 +64,20 @@ export function LogScreen({ navigation }: Props) {
   function handleEdit(entry: LogEntry) {
     if (entry.type === 'blood_sugar') {
       navigation.navigate('BloodSugarForm', { readingId: entry.data.id });
-    } else {
+    } else if (entry.type === 'food') {
       navigation.navigate('FoodForm', { entryId: entry.data.id });
+    } else {
+      navigation.navigate('WeightForm', { entryId: entry.data.id });
     }
   }
 
   function handleDelete(entry: LogEntry) {
     if (entry.type === 'blood_sugar') {
       bloodSugarRemove(entry.data.id);
-    } else {
+    } else if (entry.type === 'food') {
       foodRemove(entry.data.id);
+    } else {
+      weightRemove(entry.data.id);
     }
     setDeletedEntry(entry);
     setSnackbarVisible(true);
@@ -80,13 +93,12 @@ export function LogScreen({ navigation }: Props) {
           context: d.context,
           notes: d.notes,
         });
+      } else if (deletedEntry.type === 'food') {
+        const d = deletedEntry.data;
+        foodRestore({ name: d.name, category: d.category, timestamp: d.timestamp });
       } else {
         const d = deletedEntry.data;
-        foodRestore({
-          name: d.name,
-          category: d.category,
-          timestamp: d.timestamp,
-        });
+        weightRestore({ valueKg: d.valueKg, timestamp: d.timestamp, notes: d.notes });
       }
       setDeletedEntry(null);
     }
@@ -122,8 +134,10 @@ export function LogScreen({ navigation }: Props) {
       >
         {item.type === 'blood_sugar' ? (
           <BloodSugarCard reading={item.data} onPress={() => handleEdit(item)} />
-        ) : (
+        ) : item.type === 'food' ? (
           <FoodCard entry={item.data} onPress={() => handleEdit(item)} />
+        ) : (
+          <WeightCard entry={item.data} onPress={() => handleEdit(item)} />
         )}
       </Swipeable>
     );
@@ -193,10 +207,12 @@ export function LogScreen({ navigation }: Props) {
           <Divider />
           <List.Item
             title="Weight"
-            description="Coming soon"
-            left={(props) => <List.Icon {...props} icon="scale" color="#BDBDBD" />}
-            titleStyle={styles.disabledText}
-            descriptionStyle={styles.disabledText}
+            description="Log your weight"
+            left={(props) => <List.Icon {...props} icon="scale" color="#5C6BC0" />}
+            onPress={() => {
+              setFabOpen(false);
+              navigation.navigate('WeightForm', {});
+            }}
             testID="fab-option-weight"
           />
         </Modal>
