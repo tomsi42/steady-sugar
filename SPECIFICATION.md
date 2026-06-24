@@ -48,6 +48,7 @@
 | `name` | Text | Yes | What was eaten/drank (free text) |
 | `category` | Enum | Yes | One of: `breakfast`, `lunch`, `dinner`, `snack`, `treat`, `drink`, `alcohol` |
 | `timestamp` | DateTime | Yes | When it was consumed (auto-set to now, editable) |
+| `photo_uri` | Text | No | Local file URI of an optional photo (added v1.1.0) |
 
 **Categories (fixed):** Breakfast, Lunch, Dinner, Snack, Treat, Drink, Alcohol
 
@@ -96,6 +97,7 @@
 **Food/Drink Form:**
 - Category selector: horizontal scrollable chips (Breakfast, Lunch, Dinner, Snack, Treat, Drink, Alcohol)
 - Free-text field for food/drink description (large, prominent)
+- Optional photo picker: "Take photo" (camera) and "Choose from library" (gallery) buttons; thumbnail preview with "Remove" option once selected (v1.1.0)
 - Timestamp display (editable via date/time picker, defaults to now)
 - Large "Save" button at bottom
 
@@ -124,6 +126,7 @@
 **Food entries:**
 - Category chip (color-coded by meal type)
 - Food name in primary text
+- Small photo thumbnail on the left of the card, if a photo was attached (v1.1.0)
 - Timestamp shown as date + time (e.g., "Jun 23, 14:30")
 
 **Weight entries:**
@@ -176,8 +179,8 @@
 3. **Food Categories**
    - Fixed list (non-editable): Breakfast, Lunch, Dinner, Snack, Treat, Drink, Alcohol
 4. **Data Management**
-   - Export data (future v2)
-   - Import data (future v2)
+   - Export data — serialises all entries to a JSON file, shared via native share sheet; photos not included (v1.1.0)
+   - Import data — picks a JSON backup file, merges records without overwriting existing data (v1.1.0)
    - Clear all data (with confirmation dialog)
 5. **About**
    - App version
@@ -261,16 +264,22 @@
 
 ---
 
-## 8. Deferred Features (v2)
+## 8. v1.1.0 Features
 
-The following features are explicitly deferred to version 2:
+The following features are planned for v1.1.0:
 
-1. **Food photos** — Camera/gallery integration for food images
-2. **Notifications/reminders** — Scheduled prompts to log blood sugar or weigh-in
-3. **Dual-axis correlation chart** — Blood sugar and weight on same graph with separate Y-axes
-4. **Data export/import** — Backup and restore functionality (JSON or CSV format)
-5. **A1C estimate** — Calculated from blood sugar history
-6. **Time-in-range percentage** — Statistics on how much time spent in target range
+1. **Norwegian localization** — Auto-detected from device locale; falls back to English
+2. **Food photos** — Optional camera/gallery photo attachment on food entries; stored locally
+3. **Data export/import** — JSON backup (photos excluded) via native share sheet; merge-import without overwriting existing records
+
+## 8a. Removed from backlog
+
+The following features have been dropped and will not be built:
+
+1. **Notifications/reminders** — Scheduled prompts to log blood sugar or weigh-in
+2. **Dual-axis correlation chart** — Blood sugar and weight on same graph with separate Y-axes
+3. **A1C estimate** — Calculated from blood sugar history
+4. **Time-in-range percentage** — Statistics on how much time spent in target range
 
 ---
 

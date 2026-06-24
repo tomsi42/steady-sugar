@@ -10,15 +10,18 @@
 
 ## Milestone Overview
 
-| Milestone | Name | Delivers |
-|-----------|------|---------|
-| M0 | Foundation | Bootable app skeleton with navigation, theme, and database |
-| M1 | Blood Sugar Logging | First usable feature: log and view blood sugar readings |
-| M2 | Food & Drink Logging | Food/drink form and entries in the log list |
-| M3 | Weight Logging | Weight form and entries in the log list |
-| M4 | Graph Screen | Blood sugar and weight charts with all visual elements |
-| M5 | Settings & Onboarding | First-run setup flow and settings screen |
-| M6 | Polish & Release | End-to-end quality gate, bug fixes, v1.0.0 tag |
+| Milestone | Name | Delivers | Version |
+|-----------|------|---------|---------|
+| M0 | Foundation | Bootable app skeleton with navigation, theme, and database | v1.0.0 |
+| M1 | Blood Sugar Logging | First usable feature: log and view blood sugar readings | v1.0.0 |
+| M2 | Food & Drink Logging | Food/drink form and entries in the log list | v1.0.0 |
+| M3 | Weight Logging | Weight form and entries in the log list | v1.0.0 |
+| M4 | Graph Screen | Blood sugar and weight charts with all visual elements | v1.0.0 |
+| M5 | Settings & Onboarding | First-run setup flow and settings screen | v1.0.0 |
+| M6 | Polish & Release | End-to-end quality gate, bug fixes, v1.0.0 tag | v1.0.0 |
+| M7 | Localization | Norwegian language support, auto-detected from device | v1.1.0 |
+| M8 | Food Photos | Optional photo attachment on food entries | v1.1.0 |
+| M9 | Data Export / Import | JSON backup and restore via native share sheet | v1.1.0 |
 
 ---
 
@@ -261,13 +264,97 @@
 
 ---
 
-## Deferred to v2
+---
 
-The following are explicitly out of scope for v1:
+## M7 — Localization
 
-1. Food photos (camera/gallery)
-2. Notifications and reminders
-3. Dual-axis correlation chart (blood sugar + weight)
-4. Data export / import (JSON or CSV)
-5. A1C estimate
-6. Time-in-range percentage statistics
+**Goal:** The app displays in Norwegian when the device language is set to Norwegian (Bokmål), and in English otherwise. All user-visible strings are translation-ready from this point forward.
+
+### Tasks
+
+1. Install `i18next`, `react-i18next`, and `expo-localization`
+2. Create translation files `src/shared/i18n/en.json` and `src/shared/i18n/nb.json`
+3. Configure i18next to auto-detect locale from `expo-localization`; fall back to English
+4. Wrap all user-visible strings across every screen in `t()` calls
+5. Translate all strings into Norwegian Bokmål (`nb.json`)
+6. Update all new UI added in M8 and M9 with `t()` calls from day one
+
+### Acceptance Criteria
+
+- [ ] Device set to English shows the app in English
+- [ ] Device set to Norwegian (Bokmål) shows the app in Norwegian
+- [ ] All screens, buttons, labels, error messages, and snackbars are translated
+- [ ] No hardcoded English strings remain in any screen component
+- [ ] Switching device language and restarting the app picks up the change
+
+---
+
+## M8 — Food Photos
+
+**Goal:** Users can optionally attach a photo to a food/drink entry, taken from the camera or chosen from the gallery. Photos are stored locally on the device.
+
+### Tasks
+
+1. **Schema migration:** add nullable `photo_uri TEXT` column to `food_entries`; run `ALTER TABLE food_entries ADD COLUMN photo_uri TEXT` on first boot after upgrade
+2. Install `expo-image-picker`
+3. **FoodFormScreen:** add photo picker below the name field
+   - Two buttons: "Take photo" (camera) and "Choose from library" (gallery)
+   - Preview thumbnail shown once a photo is selected, with a "Remove" option
+   - Photo picker only shown; no upload — URI is saved as a local file path
+4. **FoodCard:** show a small thumbnail (left side of card) when `photo_uri` is present
+5. Update food repository `add` and `update` to persist `photo_uri`
+6. Update food store types to include optional `photoUri` field
+
+### Acceptance Criteria
+
+- [ ] Existing food entries without photos display normally (no regression)
+- [ ] New food entry can be saved without a photo (optional)
+- [ ] Tapping "Take photo" opens the camera; captured image appears as a preview
+- [ ] Tapping "Choose from library" opens the gallery; selected image appears as a preview
+- [ ] "Remove" clears the selected photo before saving
+- [ ] Saved entry shows a thumbnail in the log list
+- [ ] Editing an entry pre-populates the existing photo; user can replace or remove it
+- [ ] Photo URI persists across app restarts
+
+---
+
+## M9 — Data Export / Import
+
+**Goal:** Users can back up all their data to a JSON file and restore it on another device or after reinstalling. Photos are not included in the export.
+
+### Tasks
+
+1. Install `expo-file-system`, `expo-sharing`, and `expo-document-picker`
+2. **Export:**
+   - Serialise all four tables (`blood_sugar_readings`, `food_entries`, `weight_entries`, `app_settings`) to a single JSON object
+   - `photo_uri` fields are excluded from the export
+   - Write JSON to a temporary file (`SugarWise-backup-YYYY-MM-DD.json`)
+   - Trigger native share sheet so the user can save to Files, send via AirDrop, etc.
+3. **Import:**
+   - Open document picker filtered to `.json` files
+   - Validate the file structure (correct keys, expected field types)
+   - Merge strategy: insert records whose `id` does not already exist in the database; skip duplicates silently
+   - Show a summary snackbar: "Imported X entries" (or error if file is invalid)
+4. **Settings screen:** replace the two disabled "Coming in v2" items with active Export and Import buttons
+
+### Acceptance Criteria
+
+- [ ] Tapping Export produces a valid JSON file and opens the share sheet
+- [ ] Exported file contains all blood sugar, food, weight, and settings records
+- [ ] `photo_uri` is not present in the exported JSON
+- [ ] Tapping Import opens the document picker
+- [ ] Importing a valid backup file adds new records without overwriting existing ones
+- [ ] Importing a malformed file shows a clear error message without corrupting data
+- [ ] Importing the same file twice does not create duplicate records
+- [ ] Import summary snackbar shows the count of records added
+
+---
+
+## Removed from backlog
+
+The following features have been explicitly dropped and will not be built:
+
+1. Notifications and reminders
+2. Dual-axis correlation chart (blood sugar + weight)
+3. A1C estimate
+4. Time-in-range percentage statistics
