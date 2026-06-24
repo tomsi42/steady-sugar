@@ -6,6 +6,7 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { Text, TextInput, Button, HelperText } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../app/navigation';
 import { useWeightStore } from '../store';
@@ -24,6 +25,7 @@ function dateAtNoon(date: Date): Date {
 }
 
 export function WeightFormScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { entryId } = route.params ?? {};
   const entries = useWeightStore((s) => s.entries);
   const add = useWeightStore((s) => s.add);
@@ -42,8 +44,8 @@ export function WeightFormScreen({ route, navigation }: Props) {
   const isEdit = existing != null;
 
   useLayoutEffect(() => {
-    navigation.setOptions({ title: isEdit ? 'Edit Weight' : 'Log Weight' });
-  }, [navigation, isEdit]);
+    navigation.setOptions({ title: isEdit ? t('weight.title_edit') : t('weight.title_add') });
+  }, [navigation, isEdit, t]);
 
   function handleValueChange(text: string) {
     setValueText(text);
@@ -51,25 +53,25 @@ export function WeightFormScreen({ route, navigation }: Props) {
     setSoftWarning('');
     const num = parseFloat(text);
     if (!isNaN(num) && (num < 45 || num > 200)) {
-      setSoftWarning('Value outside typical range (45–200 kg)');
+      setSoftWarning(t('weight.warning_range'));
     }
   }
 
   function handleSave() {
     const num = parseFloat(valueText);
     if (!valueText.trim() || isNaN(num)) {
-      setValueError('Please enter a weight value');
+      setValueError(t('weight.error_required'));
       return;
     }
 
     const parsed = parseDateText(dateText);
     if (!parsed) {
-      setDateError('Enter date as DD/MM/YYYY');
+      setDateError(t('weight.error_date'));
       return;
     }
     const ts = dateAtNoon(parsed);
     if (ts > new Date()) {
-      setDateError('Date cannot be in the future');
+      setDateError(t('weight.error_future'));
       return;
     }
     setDateError('');
@@ -96,7 +98,7 @@ export function WeightFormScreen({ route, navigation }: Props) {
         keyboardShouldPersistTaps="handled"
       >
         <TextInput
-          label="Weight (kg)"
+          label={t('weight.label')}
           value={valueText}
           onChangeText={handleValueChange}
           keyboardType="decimal-pad"
@@ -113,10 +115,10 @@ export function WeightFormScreen({ route, navigation }: Props) {
         )}
 
         <Text variant="labelLarge" style={styles.sectionLabel}>
-          Date
+          {t('common.date')}
         </Text>
         <TextInput
-          label="DD/MM/YYYY"
+          label={t('common.date_placeholder')}
           value={dateText}
           onChangeText={(v) => {
             setDateText(formatDateInput(v));
@@ -131,7 +133,7 @@ export function WeightFormScreen({ route, navigation }: Props) {
         {!!dateError && <HelperText type="error">{dateError}</HelperText>}
 
         <TextInput
-          label="Notes (optional)"
+          label={t('common.notes_optional')}
           value={notes}
           onChangeText={setNotes}
           mode="outlined"
@@ -148,7 +150,7 @@ export function WeightFormScreen({ route, navigation }: Props) {
           contentStyle={styles.saveButtonContent}
           testID="save-button"
         >
-          {isEdit ? 'Update' : 'Save'}
+          {isEdit ? t('common.update') : t('common.save')}
         </Button>
       </ScrollView>
     </KeyboardAvoidingView>

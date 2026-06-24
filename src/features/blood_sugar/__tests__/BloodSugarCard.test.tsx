@@ -28,7 +28,7 @@ describe('BloodSugarCard', () => {
     const { getByText } = await renderWithPaper(
       <BloodSugarCard reading={baseReading} onPress={() => {}} />,
     );
-    expect(getByText('Fasting')).toBeTruthy();
+    expect(getByText('blood_sugar.fasting')).toBeTruthy();
   });
 
   it('renders notes when present', async () => {
@@ -51,7 +51,7 @@ describe('BloodSugarCard', () => {
     const { getByText } = await renderWithPaper(
       <BloodSugarCard reading={reading} onPress={() => {}} />,
     );
-    expect(getByText('Before meal')).toBeTruthy();
+    expect(getByText('blood_sugar.before_meal')).toBeTruthy();
   });
 
   it('renders After meal 2h context label', async () => {
@@ -59,7 +59,7 @@ describe('BloodSugarCard', () => {
     const { getByText } = await renderWithPaper(
       <BloodSugarCard reading={reading} onPress={() => {}} />,
     );
-    expect(getByText('After meal 2h')).toBeTruthy();
+    expect(getByText('blood_sugar.after_meal_2h')).toBeTruthy();
   });
 
   it('renders Random context label', async () => {
@@ -67,6 +67,6 @@ describe('BloodSugarCard', () => {
     const { getByText } = await renderWithPaper(
       <BloodSugarCard reading={reading} onPress={() => {}} />,
     );
-    expect(getByText('Random')).toBeTruthy();
+    expect(getByText('blood_sugar.random')).toBeTruthy();
   });
 });

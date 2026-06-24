@@ -3,6 +3,7 @@ import { View, StyleSheet } from 'react-native';
 import { Text, SegmentedButtons, Menu, Button } from 'react-native-paper';
 import { CartesianChart, Line } from 'victory-native';
 import { Circle, Rect, Text as SkiaText, matchFont } from '@shopify/react-native-skia';
+import { useTranslation } from 'react-i18next';
 
 import { useBloodSugarStore } from '../../blood_sugar/store';
 import { useFoodLogStore } from '../../food_log/store';
@@ -19,6 +20,7 @@ import { groupMealMarkers } from '../utils/groupMealMarkers';
 type ChartType = 'blood_sugar' | 'weight';
 
 export function GraphScreen() {
+  const { t } = useTranslation();
   const readings = useBloodSugarStore((s) => s.readings);
   const bloodSugarLoad = useBloodSugarStore((s) => s.load);
   const foodEntries = useFoodLogStore((s) => s.entries);
@@ -100,7 +102,7 @@ export function GraphScreen() {
 
   const isBloodSugar = chartType === 'blood_sugar';
   const hasData = isBloodSugar ? bsChartData.length > 0 : weightChartData.length > 0;
-  const chartTypeLabel = isBloodSugar ? 'Blood Sugar' : 'Weight';
+  const chartTypeLabel = isBloodSugar ? t('graph.blood_sugar') : t('graph.weight');
 
   return (
     <View style={styles.container}>
@@ -125,7 +127,7 @@ export function GraphScreen() {
               setChartType('blood_sugar');
               setMenuVisible(false);
             }}
-            title="Blood Sugar"
+            title={t('graph.blood_sugar')}
             testID="menu-blood-sugar"
           />
           <Menu.Item
@@ -133,7 +135,7 @@ export function GraphScreen() {
               setChartType('weight');
               setMenuVisible(false);
             }}
-            title="Weight"
+            title={t('graph.weight')}
             testID="menu-weight"
           />
         </Menu>
@@ -143,9 +145,9 @@ export function GraphScreen() {
         value={timeRange}
         onValueChange={(v) => setTimeRange(v as TimeRange)}
         buttons={[
-          { value: 'today', label: 'Today', testID: 'range-today' },
-          { value: '7days', label: '7 days', testID: 'range-7days' },
-          { value: '30days', label: '30 days', testID: 'range-30days' },
+          { value: 'today', label: t('graph.range_today'), testID: 'range-today' },
+          { value: '7days', label: t('graph.range_7days'), testID: 'range-7days' },
+          { value: '30days', label: t('graph.range_30days'), testID: 'range-30days' },
         ]}
         style={styles.segmented}
       />
@@ -246,10 +248,10 @@ export function GraphScreen() {
       ) : (
         <View style={styles.emptyContainer} testID="no-data">
           <Text variant="bodyLarge" style={styles.emptyText}>
-            No data yet
+            {t('log.empty_title')}
           </Text>
           <Text variant="bodyMedium" style={styles.emptySubtext}>
-            Log some {isBloodSugar ? 'blood sugar readings' : 'weight entries'} to see your chart
+            {isBloodSugar ? t('graph.empty_blood_sugar') : t('graph.empty_weight')}
           </Text>
         </View>
       )}

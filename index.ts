@@ -1,3 +1,4 @@
+import './src/shared/i18n';
 import { registerRootComponent } from 'expo';
 
 import App from './App';

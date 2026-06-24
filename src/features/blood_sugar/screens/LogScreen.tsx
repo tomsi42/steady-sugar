@@ -2,13 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, SectionList, TouchableOpacity } from 'react-native';
 import { Text, FAB, Snackbar, Portal, Modal, List, Divider } from 'react-native-paper';
 import { Swipeable } from 'react-native-gesture-handler';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList, TabParamList } from '../../../app/navigation';
 import type { CompositeScreenProps } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import type { LogEntry } from '../../../shared/types/logEntry';
 import { entryTimestamp } from '../../../shared/types/logEntry';
-import { groupEntriesByDate, type GroupedEntries } from '../../../shared/utils/groupEntriesByDate';
+import { groupEntriesByDate, type GroupedEntries, type DateGroupLabel } from '../../../shared/utils/groupEntriesByDate';
 import { useBloodSugarStore } from '../store';
 import { useFoodLogStore } from '../../food_log/store';
 import { useWeightStore } from '../../weight/store';
@@ -21,7 +22,17 @@ type Props = CompositeScreenProps<
   NativeStackScreenProps<RootStackParamList>
 >;
 
+const SECTION_TITLE_KEYS: Record<DateGroupLabel, string> = {
+  Today: 'log.today',
+  Yesterday: 'log.yesterday',
+  'This Week': 'log.this_week',
+  'Last Week': 'log.last_week',
+  Older: 'log.older',
+};
+
 export function LogScreen({ navigation }: Props) {
+  const { t } = useTranslation();
+
   const readings = useBloodSugarStore((s) => s.readings);
   const bloodSugarLoad = useBloodSugarStore((s) => s.load);
   const bloodSugarRemove = useBloodSugarStore((s) => s.remove);
@@ -112,7 +123,7 @@ export function LogScreen({ navigation }: Props) {
         onPress={() => handleDelete(entry)}
         testID={`delete-action-${entryKey(entry)}`}
       >
-        <Text style={styles.deleteActionText}>Delete</Text>
+        <Text style={styles.deleteActionText}>{t('log.delete')}</Text>
       </TouchableOpacity>
     );
   }
@@ -147,7 +158,7 @@ export function LogScreen({ navigation }: Props) {
     return (
       <View style={styles.sectionHeader}>
         <Text variant="titleSmall" style={styles.sectionHeaderText}>
-          {section.title}
+          {t(SECTION_TITLE_KEYS[section.title])}
         </Text>
       </View>
     );
@@ -158,10 +169,10 @@ export function LogScreen({ navigation }: Props) {
       {allEntries.length === 0 ? (
         <View style={styles.emptyContainer} testID="empty-state">
           <Text variant="bodyLarge" style={styles.emptyText}>
-            No data yet
+            {t('log.empty_title')}
           </Text>
           <Text variant="bodyMedium" style={styles.emptySubtext}>
-            Tap + to log your first entry
+            {t('log.empty_subtitle')}
           </Text>
         </View>
       ) : (
@@ -184,8 +195,8 @@ export function LogScreen({ navigation }: Props) {
           testID="fab-modal"
         >
           <List.Item
-            title="Blood Sugar"
-            description="Log a blood sugar reading"
+            title={t('log.fab_blood_sugar')}
+            description={t('log.fab_blood_sugar_desc')}
             left={(props) => <List.Icon {...props} icon="water" color="#E53935" />}
             onPress={() => {
               setFabOpen(false);
@@ -195,8 +206,8 @@ export function LogScreen({ navigation }: Props) {
           />
           <Divider />
           <List.Item
-            title="Food / Drink"
-            description="Log a meal or drink"
+            title={t('log.fab_food')}
+            description={t('food.fab_desc')}
             left={(props) => <List.Icon {...props} icon="food" color="#26A69A" />}
             onPress={() => {
               setFabOpen(false);
@@ -206,8 +217,8 @@ export function LogScreen({ navigation }: Props) {
           />
           <Divider />
           <List.Item
-            title="Weight"
-            description="Log your weight"
+            title={t('log.fab_weight')}
+            description={t('weight.fab_desc')}
             left={(props) => <List.Icon {...props} icon="scale" color="#5C6BC0" />}
             onPress={() => {
               setFabOpen(false);
@@ -229,10 +240,10 @@ export function LogScreen({ navigation }: Props) {
         visible={snackbarVisible}
         onDismiss={() => setSnackbarVisible(false)}
         duration={4000}
-        action={{ label: 'Undo', onPress: handleUndo }}
+        action={{ label: t('log.undo'), onPress: handleUndo }}
         testID="delete-snackbar"
       >
-        Entry deleted
+        {t('log.deleted')}
       </Snackbar>
     </View>
   );

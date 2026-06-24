@@ -27,7 +27,7 @@ describe('FoodCard', () => {
     const { getByText } = await renderWithPaper(
       <FoodCard entry={baseEntry} onPress={() => {}} />,
     );
-    expect(getByText('Breakfast')).toBeTruthy();
+    expect(getByText('food.breakfast')).toBeTruthy();
   });
 
   it('renders Lunch category label', async () => {
@@ -35,7 +35,7 @@ describe('FoodCard', () => {
     const { getByText } = await renderWithPaper(
       <FoodCard entry={entry} onPress={() => {}} />,
     );
-    expect(getByText('Lunch')).toBeTruthy();
+    expect(getByText('food.lunch')).toBeTruthy();
   });
 
   it('renders Dinner category label', async () => {
@@ -43,7 +43,7 @@ describe('FoodCard', () => {
     const { getByText } = await renderWithPaper(
       <FoodCard entry={entry} onPress={() => {}} />,
     );
-    expect(getByText('Dinner')).toBeTruthy();
+    expect(getByText('food.dinner')).toBeTruthy();
   });
 
   it('renders Snack category label', async () => {
@@ -51,7 +51,7 @@ describe('FoodCard', () => {
     const { getByText } = await renderWithPaper(
       <FoodCard entry={entry} onPress={() => {}} />,
     );
-    expect(getByText('Snack')).toBeTruthy();
+    expect(getByText('food.snack')).toBeTruthy();
   });
 
   it('renders Drink category label', async () => {
@@ -59,7 +59,7 @@ describe('FoodCard', () => {
     const { getByText } = await renderWithPaper(
       <FoodCard entry={entry} onPress={() => {}} />,
     );
-    expect(getByText('Drink')).toBeTruthy();
+    expect(getByText('food.drink')).toBeTruthy();
   });
 
   it('renders Treat category label', async () => {
@@ -67,7 +67,7 @@ describe('FoodCard', () => {
     const { getByText } = await renderWithPaper(
       <FoodCard entry={entry} onPress={() => {}} />,
     );
-    expect(getByText('Treat')).toBeTruthy();
+    expect(getByText('food.treat')).toBeTruthy();
   });
 
   it('renders Alcohol category label', async () => {
@@ -75,6 +75,6 @@ describe('FoodCard', () => {
     const { getByText } = await renderWithPaper(
       <FoodCard entry={entry} onPress={() => {}} />,
     );
-    expect(getByText('Alcohol')).toBeTruthy();
+    expect(getByText('food.alcohol')).toBeTruthy();
   });
 });

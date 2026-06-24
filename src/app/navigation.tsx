@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { NavigationProp } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 
 import { LogScreen } from '../features/blood_sugar/screens/LogScreen';
 import { GraphScreen } from '../features/graph/screens/GraphScreen';
@@ -37,6 +38,7 @@ const Tab = createBottomTabNavigator<TabParamList>();
 
 function TabNavigator() {
   const theme = useTheme();
+  const { t } = useTranslation();
 
   function SettingsButton() {
     const nav = useNavigation<NavigationProp<RootStackParamList>>();
@@ -63,7 +65,7 @@ function TabNavigator() {
         name="Log"
         component={LogScreen}
         options={{
-          title: 'Log',
+          title: t('nav.log'),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="clipboard-list-outline" size={size} color={color} />
           ),
@@ -73,7 +75,7 @@ function TabNavigator() {
         name="Graph"
         component={GraphScreen}
         options={{
-          title: 'Graph',
+          title: t('nav.graph'),
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="chart-line" size={size} color={color} />
           ),

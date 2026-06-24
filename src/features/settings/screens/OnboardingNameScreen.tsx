@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, TextInput, Button } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../app/navigation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingName'>;
 
 export function OnboardingNameScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [error, setError] = useState('');
 
   function handleNext() {
     const trimmed = name.trim();
     if (!trimmed) {
-      setError('Please enter your name');
+      setError(t('onboarding.name_error'));
       return;
     }
     navigation.navigate('OnboardingTargetRange', { name: trimmed });
@@ -26,10 +28,10 @@ export function OnboardingNameScreen({ navigation }: Props) {
     >
       <View style={styles.container}>
         <Text variant="headlineMedium" style={styles.heading}>
-          What should we call you?
+          {t('onboarding.name_heading')}
         </Text>
         <TextInput
-          label="Your name"
+          label={t('settings.name_label')}
           value={name}
           onChangeText={(v) => {
             setName(v);
@@ -50,7 +52,7 @@ export function OnboardingNameScreen({ navigation }: Props) {
           contentStyle={styles.buttonContent}
           testID="next-button"
         >
-          Next
+          {t('common.next')}
         </Button>
       </View>
     </KeyboardAvoidingView>

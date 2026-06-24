@@ -7,11 +7,12 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { Text, TextInput, Button, HelperText, Chip } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../app/navigation';
 import type { FoodCategory } from '../../../shared/database/schema';
 import { useFoodLogStore } from '../store';
-import { CATEGORY_COLORS, CATEGORY_LABELS } from '../utils/categoryColors';
+import { CATEGORY_COLORS } from '../utils/categoryColors';
 import {
   parseDateText,
   parseTimeText,
@@ -34,6 +35,7 @@ const CATEGORIES: FoodCategory[] = [
 ];
 
 export function FoodFormScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { entryId } = route.params ?? {};
   const entries = useFoodLogStore((s) => s.entries);
   const add = useFoodLogStore((s) => s.add);
@@ -52,30 +54,30 @@ export function FoodFormScreen({ route, navigation }: Props) {
   const isEdit = existing != null;
 
   useLayoutEffect(() => {
-    navigation.setOptions({ title: isEdit ? 'Edit Food / Drink' : 'Log Food / Drink' });
-  }, [navigation, isEdit]);
+    navigation.setOptions({ title: isEdit ? t('food.title_edit') : t('food.title_add') });
+  }, [navigation, isEdit, t]);
 
   function parseTimestamp(): Date | null {
     const d = parseDateText(dateText);
-    const t = parseTimeText(timeText);
-    if (!d || !t) return null;
-    d.setHours(t.hours, t.minutes, 0, 0);
+    const t2 = parseTimeText(timeText);
+    if (!d || !t2) return null;
+    d.setHours(t2.hours, t2.minutes, 0, 0);
     return d;
   }
 
   function handleSave() {
     if (!name.trim()) {
-      setNameError('Please enter a name for this entry');
+      setNameError(t('food.error_name'));
       return;
     }
 
     const ts = parseTimestamp();
     if (!ts) {
-      setTimestampError('Enter date as DD/MM/YYYY and time as HH:MM');
+      setTimestampError(t('food.error_timestamp'));
       return;
     }
     if (ts > new Date()) {
-      setTimestampError('Timestamp cannot be in the future');
+      setTimestampError(t('food.error_future'));
       return;
     }
     setTimestampError('');
@@ -100,7 +102,7 @@ export function FoodFormScreen({ route, navigation }: Props) {
         keyboardShouldPersistTaps="handled"
       >
         <Text variant="labelLarge" style={styles.sectionLabel}>
-          Category
+          {t('food.category_label')}
         </Text>
         <ScrollView
           horizontal
@@ -126,17 +128,17 @@ export function FoodFormScreen({ route, navigation }: Props) {
                 ]}
                 testID={`category-chip-${cat}`}
               >
-                {CATEGORY_LABELS[cat]}
+                {t(`food.${cat}`)}
               </Chip>
             );
           })}
         </ScrollView>
 
         <TextInput
-          label="What did you eat or drink?"
+          label={t('food.name_placeholder')}
           value={name}
-          onChangeText={(t) => {
-            setName(t);
+          onChangeText={(text) => {
+            setName(text);
             setNameError('');
           }}
           mode="outlined"
@@ -149,11 +151,11 @@ export function FoodFormScreen({ route, navigation }: Props) {
         {!!nameError && <HelperText type="error">{nameError}</HelperText>}
 
         <Text variant="labelLarge" style={styles.sectionLabel}>
-          When
+          {t('common.when')}
         </Text>
         <View style={styles.dateTimeRow}>
           <TextInput
-            label="DD/MM/YYYY"
+            label={t('common.date_placeholder')}
             value={dateText}
             onChangeText={(v) => {
               setDateText(formatDateInput(v));
@@ -166,7 +168,7 @@ export function FoodFormScreen({ route, navigation }: Props) {
             testID="date-input"
           />
           <TextInput
-            label="HH:MM"
+            label={t('common.time_placeholder')}
             value={timeText}
             onChangeText={(v) => {
               setTimeText(formatTimeInput(v));
@@ -188,7 +190,7 @@ export function FoodFormScreen({ route, navigation }: Props) {
           contentStyle={styles.saveButtonContent}
           testID="save-button"
         >
-          {isEdit ? 'Update' : 'Save'}
+          {isEdit ? t('common.update') : t('common.save')}
         </Button>
       </ScrollView>
     </KeyboardAvoidingView>

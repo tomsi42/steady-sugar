@@ -27,7 +27,7 @@ describe('WeightCard', () => {
     const { getByText } = await renderWithPaper(
       <WeightCard entry={baseEntry} onPress={() => {}} />,
     );
-    expect(getByText(' kg')).toBeTruthy();
+    expect(getByText(' weight.kg_unit')).toBeTruthy();
   });
 
   it('renders date only (no time)', async () => {

@@ -1,10 +1,12 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import type { WeightEntry } from '../../../shared/database/schema';
+import { locale } from '../../../shared/i18n';
 
 function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
 }
 
 interface Props {
@@ -13,11 +15,13 @@ interface Props {
 }
 
 export function WeightCard({ entry, onPress }: Props) {
+  const { t } = useTranslation();
+
   return (
     <TouchableOpacity onPress={onPress} style={styles.container} activeOpacity={0.7}>
       <View style={styles.row}>
         <Text style={styles.value}>{entry.valueKg.toFixed(1)}</Text>
-        <Text style={styles.unit}> kg</Text>
+        <Text style={styles.unit}> {t('weight.kg_unit')}</Text>
         <View style={styles.spacer} />
         <Text style={styles.date}>{formatDate(new Date(entry.timestamp))}</Text>
       </View>

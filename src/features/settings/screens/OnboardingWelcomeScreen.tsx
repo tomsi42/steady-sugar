@@ -2,12 +2,15 @@ import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, Button } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../app/navigation';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingWelcome'>;
 
 export function OnboardingWelcomeScreen({ navigation }: Props) {
+  const { t } = useTranslation();
+
   return (
     <View style={styles.container}>
       <MaterialCommunityIcons name="water" size={72} color="#00897B" style={styles.icon} />
@@ -15,7 +18,7 @@ export function OnboardingWelcomeScreen({ navigation }: Props) {
         SugarWise
       </Text>
       <Text variant="bodyLarge" style={styles.subtitle}>
-        Track your blood sugar, food, and weight — all in one place.
+        {t('onboarding.welcome_subtitle')}
       </Text>
       <Button
         mode="contained"
@@ -24,7 +27,7 @@ export function OnboardingWelcomeScreen({ navigation }: Props) {
         contentStyle={styles.buttonContent}
         testID="get-started-button"
       >
-        Get Started
+        {t('onboarding.get_started')}
       </Button>
     </View>
   );

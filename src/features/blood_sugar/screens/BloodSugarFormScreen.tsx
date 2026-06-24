@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { Text, TextInput, Button, SegmentedButtons, HelperText } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../app/navigation';
 import type { BloodSugarContext } from '../../../shared/database/schema';
@@ -22,14 +23,10 @@ import {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BloodSugarForm'>;
 
-const CONTEXT_OPTIONS: { value: BloodSugarContext; label: string }[] = [
-  { value: 'fasting', label: 'Fasting' },
-  { value: 'before_meal', label: 'Before meal' },
-  { value: 'after_meal_2h', label: 'After meal 2h' },
-  { value: 'random', label: 'Random' },
-];
+const CONTEXT_OPTIONS: BloodSugarContext[] = ['fasting', 'before_meal', 'after_meal_2h', 'random'];
 
 export function BloodSugarFormScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { readingId } = route.params ?? {};
   const readings = useBloodSugarStore((s) => s.readings);
   const add = useBloodSugarStore((s) => s.add);
@@ -50,8 +47,8 @@ export function BloodSugarFormScreen({ route, navigation }: Props) {
   const isEdit = existing != null;
 
   useLayoutEffect(() => {
-    navigation.setOptions({ title: isEdit ? 'Edit Reading' : 'Log Blood Sugar' });
-  }, [navigation, isEdit]);
+    navigation.setOptions({ title: isEdit ? t('blood_sugar.title_edit') : t('blood_sugar.title_add') });
+  }, [navigation, isEdit, t]);
 
   function handleValueChange(text: string) {
     setValueText(text);
@@ -59,32 +56,32 @@ export function BloodSugarFormScreen({ route, navigation }: Props) {
     setSoftWarning('');
     const num = parseFloat(text);
     if (!isNaN(num) && (num < 0 || num > 35)) {
-      setSoftWarning('Value outside typical range (0–35 mmol/L)');
+      setSoftWarning(t('blood_sugar.warning_range'));
     }
   }
 
   function parseTimestamp(): Date | null {
     const d = parseDateText(dateText);
-    const t = parseTimeText(timeText);
-    if (!d || !t) return null;
-    d.setHours(t.hours, t.minutes, 0, 0);
+    const t2 = parseTimeText(timeText);
+    if (!d || !t2) return null;
+    d.setHours(t2.hours, t2.minutes, 0, 0);
     return d;
   }
 
   function handleSave() {
     const num = parseFloat(valueText);
     if (!valueText.trim() || isNaN(num)) {
-      setValueError('Please enter a blood sugar value');
+      setValueError(t('blood_sugar.error_required'));
       return;
     }
 
     const ts = parseTimestamp();
     if (!ts) {
-      setTimestampError('Enter date as DD/MM/YYYY and time as HH:MM');
+      setTimestampError(t('blood_sugar.error_timestamp'));
       return;
     }
     if (ts > new Date()) {
-      setTimestampError('Timestamp cannot be in the future');
+      setTimestampError(t('blood_sugar.error_future'));
       return;
     }
     setTimestampError('');
@@ -109,7 +106,7 @@ export function BloodSugarFormScreen({ route, navigation }: Props) {
         keyboardShouldPersistTaps="handled"
       >
         <TextInput
-          label="Blood sugar (mmol/L)"
+          label={t('blood_sugar.label')}
           value={valueText}
           onChangeText={handleValueChange}
           keyboardType="decimal-pad"
@@ -126,25 +123,25 @@ export function BloodSugarFormScreen({ route, navigation }: Props) {
         )}
 
         <Text variant="labelLarge" style={styles.sectionLabel}>
-          Context
+          {t('blood_sugar.context')}
         </Text>
         <SegmentedButtons
           value={context}
           onValueChange={(v) => setContext(v as BloodSugarContext)}
           buttons={CONTEXT_OPTIONS.map((o) => ({
-            value: o.value,
-            label: o.label,
-            testID: `context-${o.value}`,
+            value: o,
+            label: t(`blood_sugar.${o}`),
+            testID: `context-${o}`,
           }))}
           style={styles.segmented}
         />
 
         <Text variant="labelLarge" style={styles.sectionLabel}>
-          When
+          {t('common.when')}
         </Text>
         <View style={styles.dateTimeRow}>
           <TextInput
-            label="DD/MM/YYYY"
+            label={t('common.date_placeholder')}
             value={dateText}
             onChangeText={(v) => {
               setDateText(formatDateInput(v));
@@ -157,7 +154,7 @@ export function BloodSugarFormScreen({ route, navigation }: Props) {
             testID="date-input"
           />
           <TextInput
-            label="HH:MM"
+            label={t('common.time_placeholder')}
             value={timeText}
             onChangeText={(v) => {
               setTimeText(formatTimeInput(v));
@@ -173,7 +170,7 @@ export function BloodSugarFormScreen({ route, navigation }: Props) {
         {!!timestampError && <HelperText type="error">{timestampError}</HelperText>}
 
         <TextInput
-          label="Notes (optional)"
+          label={t('common.notes_optional')}
           value={notes}
           onChangeText={setNotes}
           mode="outlined"
@@ -190,7 +187,7 @@ export function BloodSugarFormScreen({ route, navigation }: Props) {
           contentStyle={styles.saveButtonContent}
           testID="save-button"
         >
-          {isEdit ? 'Update' : 'Save'}
+          {isEdit ? t('common.update') : t('common.save')}
         </Button>
       </ScrollView>
     </KeyboardAvoidingView>

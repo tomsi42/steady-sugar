@@ -1,11 +1,13 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, Chip } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import type { FoodEntry } from '../../../shared/database/schema';
-import { CATEGORY_COLORS, CATEGORY_LABELS } from '../utils/categoryColors';
+import { CATEGORY_COLORS } from '../utils/categoryColors';
+import { locale } from '../../../shared/i18n';
 
 function formatTimestamp(date: Date): string {
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString(locale, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -20,8 +22,8 @@ interface Props {
 }
 
 export function FoodCard({ entry, onPress }: Props) {
+  const { t } = useTranslation();
   const chipColor = CATEGORY_COLORS[entry.category];
-  const label = CATEGORY_LABELS[entry.category];
 
   return (
     <TouchableOpacity onPress={onPress} style={styles.container} activeOpacity={0.7}>
@@ -34,7 +36,7 @@ export function FoodCard({ entry, onPress }: Props) {
           style={[styles.chip, { backgroundColor: chipColor }]}
           textStyle={styles.chipText}
         >
-          {label}
+          {t(`food.${entry.category}`)}
         </Chip>
       </View>
       <Text style={styles.timestamp}>{formatTimestamp(new Date(entry.timestamp))}</Text>

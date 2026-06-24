@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, TextInput, Button } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../app/navigation';
 import { useSettingsStore } from '../store';
@@ -8,6 +9,7 @@ import { useSettingsStore } from '../store';
 type Props = NativeStackScreenProps<RootStackParamList, 'OnboardingTargetRange'>;
 
 export function OnboardingTargetRangeScreen({ route, navigation }: Props) {
+  const { t } = useTranslation();
   const { name } = route.params;
   const update = useSettingsStore((s) => s.update);
 
@@ -19,11 +21,11 @@ export function OnboardingTargetRangeScreen({ route, navigation }: Props) {
     const min = parseFloat(minText);
     const max = parseFloat(maxText);
     if (isNaN(min) || isNaN(max) || min <= 0 || max <= 0) {
-      setError('Please enter valid numbers');
+      setError(t('onboarding.range_error_invalid'));
       return;
     }
     if (min >= max) {
-      setError('Minimum must be less than maximum');
+      setError(t('onboarding.range_error_order'));
       return;
     }
     update({ userName: name, targetMinMmol: min, targetMaxMmol: max });
@@ -37,14 +39,13 @@ export function OnboardingTargetRangeScreen({ route, navigation }: Props) {
     >
       <View style={styles.container}>
         <Text variant="headlineMedium" style={styles.heading}>
-          Set your target range
+          {t('onboarding.range_heading')}
         </Text>
         <Text variant="bodyMedium" style={styles.description}>
-          Your doctor's recommended blood sugar range in mmol/L. You can change this any time in
-          Settings.
+          {t('onboarding.range_description')}
         </Text>
         <TextInput
-          label="Minimum (mmol/L)"
+          label={t('common.min_mmol')}
           value={minText}
           onChangeText={(v) => {
             setMinText(v);
@@ -56,7 +57,7 @@ export function OnboardingTargetRangeScreen({ route, navigation }: Props) {
           testID="min-input"
         />
         <TextInput
-          label="Maximum (mmol/L)"
+          label={t('common.max_mmol')}
           value={maxText}
           onChangeText={(v) => {
             setMaxText(v);
@@ -75,7 +76,7 @@ export function OnboardingTargetRangeScreen({ route, navigation }: Props) {
           contentStyle={styles.buttonContent}
           testID="done-button"
         >
-          Done
+          {t('common.done')}
         </Button>
       </View>
     </KeyboardAvoidingView>

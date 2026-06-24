@@ -1,18 +1,20 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { Text, Chip } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import type { BloodSugarReading, BloodSugarContext } from '../../../shared/database/schema';
 import { colorForBloodSugar } from '../utils/colorForBloodSugar';
+import { locale } from '../../../shared/i18n';
 
-const CONTEXT_LABELS: Record<BloodSugarContext, string> = {
-  fasting: 'Fasting',
-  before_meal: 'Before meal',
-  after_meal_2h: 'After meal 2h',
-  random: 'Random',
+const CONTEXT_KEYS: Record<BloodSugarContext, string> = {
+  fasting: 'blood_sugar.fasting',
+  before_meal: 'blood_sugar.before_meal',
+  after_meal_2h: 'blood_sugar.after_meal_2h',
+  random: 'blood_sugar.random',
 };
 
 function formatTimestamp(date: Date): string {
-  return date.toLocaleDateString('en-US', {
+  return date.toLocaleDateString(locale, {
     month: 'short',
     day: 'numeric',
     hour: '2-digit',
@@ -27,6 +29,7 @@ interface Props {
 }
 
 export function BloodSugarCard({ reading, onPress }: Props) {
+  const { t } = useTranslation();
   const valueColor = colorForBloodSugar(reading.valueMmol);
 
   return (
@@ -35,10 +38,10 @@ export function BloodSugarCard({ reading, onPress }: Props) {
         <Text style={[styles.value, { color: valueColor }]}>
           {reading.valueMmol.toFixed(1)}
         </Text>
-        <Text style={styles.unit}> mmol/L</Text>
+        <Text style={styles.unit}> {t('blood_sugar.mmol_unit')}</Text>
         <View style={styles.spacer} />
         <Chip compact style={styles.chip} textStyle={styles.chipText}>
-          {CONTEXT_LABELS[reading.context]}
+          {t(CONTEXT_KEYS[reading.context])}
         </Chip>
       </View>
       <Text style={styles.timestamp}>{formatTimestamp(new Date(reading.timestamp))}</Text>

@@ -9,16 +9,14 @@ import {
   Portal,
   Dialog,
 } from 'react-native-paper';
+import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../app/navigation';
 import { useSettingsStore } from '../store';
 import { useBloodSugarStore } from '../../blood_sugar/store';
 import { useFoodLogStore } from '../../food_log/store';
 import { useWeightStore } from '../../weight/store';
-import {
-  CATEGORY_COLORS,
-  CATEGORY_LABELS,
-} from '../../food_log/utils/categoryColors';
+import { CATEGORY_COLORS } from '../../food_log/utils/categoryColors';
 import type { FoodCategory } from '../../../shared/database/schema';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
@@ -36,6 +34,7 @@ const CATEGORIES: FoodCategory[] = [
 const APP_VERSION = '1.0.0';
 
 export function SettingsScreen({ navigation }: Props) {
+  const { t } = useTranslation();
   const settings = useSettingsStore((s) => s.settings);
   const targetMin = useSettingsStore((s) => s.targetMinMmol);
   const targetMax = useSettingsStore((s) => s.targetMaxMmol);
@@ -66,11 +65,11 @@ export function SettingsScreen({ navigation }: Props) {
     const min = parseFloat(minText);
     const max = parseFloat(maxText);
     if (isNaN(min) || isNaN(max) || min <= 0 || max <= 0) {
-      setRangeError('Please enter valid numbers');
+      setRangeError(t('settings.error_invalid'));
       return;
     }
     if (min >= max) {
-      setRangeError('Minimum must be less than maximum');
+      setRangeError(t('settings.error_min_max'));
       return;
     }
     setRangeError('');
@@ -89,11 +88,10 @@ export function SettingsScreen({ navigation }: Props) {
   return (
     <>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-        {/* Profile */}
-        <List.Subheader style={styles.subheader}>Profile</List.Subheader>
+        <List.Subheader style={styles.subheader}>{t('settings.profile')}</List.Subheader>
         <View style={styles.section}>
           <TextInput
-            label="Your name"
+            label={t('settings.name_label')}
             value={nameText}
             onChangeText={setNameText}
             onBlur={handleNameBlur}
@@ -105,11 +103,10 @@ export function SettingsScreen({ navigation }: Props) {
 
         <Divider />
 
-        {/* Blood Sugar Targets */}
-        <List.Subheader style={styles.subheader}>Blood Sugar Targets</List.Subheader>
+        <List.Subheader style={styles.subheader}>{t('settings.targets')}</List.Subheader>
         <View style={styles.section}>
           <TextInput
-            label="Minimum (mmol/L)"
+            label={t('common.min_mmol')}
             value={minText}
             onChangeText={(v) => {
               setMinText(v);
@@ -122,7 +119,7 @@ export function SettingsScreen({ navigation }: Props) {
             testID="settings-min-input"
           />
           <TextInput
-            label="Maximum (mmol/L)"
+            label={t('common.max_mmol')}
             value={maxText}
             onChangeText={(v) => {
               setMaxText(v);
@@ -139,12 +136,11 @@ export function SettingsScreen({ navigation }: Props) {
 
         <Divider />
 
-        {/* Food Categories */}
-        <List.Subheader style={styles.subheader}>Food Categories</List.Subheader>
+        <List.Subheader style={styles.subheader}>{t('settings.categories')}</List.Subheader>
         {CATEGORIES.map((cat) => (
           <List.Item
             key={cat}
-            title={CATEGORY_LABELS[cat]}
+            title={t(`food.${cat}`)}
             left={() => (
               <View style={[styles.categoryDot, { backgroundColor: CATEGORY_COLORS[cat] }]} />
             )}
@@ -153,11 +149,10 @@ export function SettingsScreen({ navigation }: Props) {
 
         <Divider />
 
-        {/* Data Management */}
-        <List.Subheader style={styles.subheader}>Data Management</List.Subheader>
+        <List.Subheader style={styles.subheader}>{t('settings.data_management')}</List.Subheader>
         <List.Item
-          title="Export / Import"
-          description="Coming in v2"
+          title={t('settings.export_import')}
+          description={t('settings.coming_v2')}
           left={(props) => <List.Icon {...props} icon="swap-horizontal" color="#BDBDBD" />}
           titleStyle={styles.disabledText}
           descriptionStyle={styles.disabledText}
@@ -170,39 +165,35 @@ export function SettingsScreen({ navigation }: Props) {
             style={styles.clearButton}
             testID="clear-data-button"
           >
-            Clear All Data
+            {t('settings.clear_button')}
           </Button>
         </View>
 
         <Divider />
 
-        {/* About */}
-        <List.Subheader style={styles.subheader}>About</List.Subheader>
+        <List.Subheader style={styles.subheader}>{t('settings.about')}</List.Subheader>
         <List.Item
-          title="Version"
+          title={t('settings.version')}
           right={() => (
             <Text style={styles.versionText}>{APP_VERSION}</Text>
           )}
         />
         <List.Item
-          title="Built with Expo & React Native"
+          title={t('settings.built_with')}
           titleStyle={styles.aboutText}
         />
       </ScrollView>
 
       <Portal>
         <Dialog visible={confirmVisible} onDismiss={() => setConfirmVisible(false)}>
-          <Dialog.Title>Clear all data?</Dialog.Title>
+          <Dialog.Title>{t('settings.confirm_title')}</Dialog.Title>
           <Dialog.Content>
-            <Text>
-              This permanently deletes all blood sugar readings, food entries, weight entries, and
-              resets your settings. This cannot be undone.
-            </Text>
+            <Text>{t('settings.confirm_body')}</Text>
           </Dialog.Content>
           <Dialog.Actions>
-            <Button onPress={() => setConfirmVisible(false)}>Cancel</Button>
+            <Button onPress={() => setConfirmVisible(false)}>{t('common.cancel')}</Button>
             <Button onPress={handleClearAll} textColor="#E53935" testID="confirm-clear-button">
-              Clear
+              {t('settings.clear_confirm_button')}
             </Button>
           </Dialog.Actions>
         </Dialog>
