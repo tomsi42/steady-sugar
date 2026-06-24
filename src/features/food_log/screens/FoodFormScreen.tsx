@@ -5,9 +5,12 @@ import {
   ScrollView,
   Platform,
   KeyboardAvoidingView,
+  Image,
+  Alert,
 } from 'react-native';
-import { Text, TextInput, Button, HelperText, Chip } from 'react-native-paper';
+import { Text, TextInput, Button, HelperText, Chip, IconButton } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
+import * as ImagePicker from 'expo-image-picker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../app/navigation';
 import type { FoodCategory } from '../../../shared/database/schema';
@@ -48,6 +51,7 @@ export function FoodFormScreen({ route, navigation }: Props) {
   const [category, setCategory] = useState<FoodCategory>(existing?.category ?? 'snack');
   const [dateText, setDateText] = useState(formatDateText(initial));
   const [timeText, setTimeText] = useState(formatTimeText(initial));
+  const [photoUri, setPhotoUri] = useState<string | null>(existing?.photoUri ?? null);
   const [nameError, setNameError] = useState('');
   const [timestampError, setTimestampError] = useState('');
 
@@ -56,6 +60,38 @@ export function FoodFormScreen({ route, navigation }: Props) {
   useLayoutEffect(() => {
     navigation.setOptions({ title: isEdit ? t('food.title_edit') : t('food.title_add') });
   }, [navigation, isEdit, t]);
+
+  async function handleTakePhoto() {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Camera permission is required to take photos.');
+      return;
+    }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.7,
+    });
+    if (!result.canceled) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  }
+
+  async function handleChoosePhoto() {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission needed', 'Photo library permission is required to choose photos.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsEditing: true,
+      quality: 0.7,
+    });
+    if (!result.canceled) {
+      setPhotoUri(result.assets[0].uri);
+    }
+  }
 
   function parseTimestamp(): Date | null {
     const d = parseDateText(dateText);
@@ -83,9 +119,9 @@ export function FoodFormScreen({ route, navigation }: Props) {
     setTimestampError('');
 
     if (isEdit && existing) {
-      update(existing.id, { name: name.trim(), category, timestamp: ts });
+      update(existing.id, { name: name.trim(), category, timestamp: ts, photoUri });
     } else {
-      add({ name: name.trim(), category, timestamp: ts });
+      add({ name: name.trim(), category, timestamp: ts, photoUri });
     }
 
     navigation.goBack();
@@ -150,6 +186,45 @@ export function FoodFormScreen({ route, navigation }: Props) {
         />
         {!!nameError && <HelperText type="error">{nameError}</HelperText>}
 
+        {/* Photo section */}
+        <Text variant="labelLarge" style={styles.sectionLabel}>
+          {t('food.photo_label')}
+        </Text>
+        {photoUri ? (
+          <View style={styles.photoPreview} testID="photo-preview">
+            <Image source={{ uri: photoUri }} style={styles.previewImage} />
+            <IconButton
+              icon="close-circle"
+              size={24}
+              iconColor="#E53935"
+              style={styles.removeButton}
+              onPress={() => setPhotoUri(null)}
+              testID="remove-photo-button"
+            />
+          </View>
+        ) : (
+          <View style={styles.photoButtons}>
+            <Button
+              mode="outlined"
+              icon="camera"
+              onPress={handleTakePhoto}
+              style={styles.photoButton}
+              testID="take-photo-button"
+            >
+              {t('food.photo_take')}
+            </Button>
+            <Button
+              mode="outlined"
+              icon="image"
+              onPress={handleChoosePhoto}
+              style={styles.photoButton}
+              testID="choose-photo-button"
+            >
+              {t('food.photo_choose')}
+            </Button>
+          </View>
+        )}
+
         <Text variant="labelLarge" style={styles.sectionLabel}>
           {t('common.when')}
         </Text>
@@ -205,6 +280,11 @@ const styles = StyleSheet.create({
   categoryChip: { marginRight: 0 },
   categoryChipText: { fontSize: 13 },
   nameInput: { fontSize: 16, marginTop: 20 },
+  photoButtons: { flexDirection: 'row', gap: 12 },
+  photoButton: { flex: 1 },
+  photoPreview: { position: 'relative', alignSelf: 'flex-start' },
+  previewImage: { width: 120, height: 120, borderRadius: 8 },
+  removeButton: { position: 'absolute', top: -8, right: -8, margin: 0 },
   dateTimeRow: { flexDirection: 'row', gap: 12 },
   dateInput: { flex: 3 },
   timeInput: { flex: 2 },

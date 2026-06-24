@@ -6,3 +6,10 @@ jest.mock('react-i18next', () => ({
 jest.mock('expo-localization', () => ({
   getLocales: () => [{ languageTag: 'en-US' }],
 }));
+
+jest.mock('expo-image-picker', () => ({
+  launchCameraAsync: jest.fn(),
+  launchImageLibraryAsync: jest.fn(),
+  requestCameraPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+  requestMediaLibraryPermissionsAsync: jest.fn(() => Promise.resolve({ status: 'granted' })),
+}));

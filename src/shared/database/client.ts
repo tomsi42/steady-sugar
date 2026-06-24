@@ -42,4 +42,11 @@ export async function initDatabase() {
     INSERT OR IGNORE INTO app_settings (id, user_name, target_min_mmol, target_max_mmol)
     VALUES (1, '', 3.9, 7.8);
   `);
+
+  // v1.1.0 migration: add photo_uri to food_entries
+  try {
+    sqlite.execSync(`ALTER TABLE food_entries ADD COLUMN photo_uri TEXT;`);
+  } catch {
+    // column already exists — safe to ignore
+  }
 }

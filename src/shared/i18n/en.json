@@ -48,7 +48,11 @@
     "drink": "Drink",
     "treat": "Treat",
     "alcohol": "Alcohol",
-    "fab_desc": "Log a meal or drink"
+    "fab_desc": "Log a meal or drink",
+    "photo_label": "Photo (optional)",
+    "photo_take": "Camera",
+    "photo_choose": "Gallery",
+    "photo_remove": "Remove"
   },
   "weight": {
     "label": "Weight (kg)",

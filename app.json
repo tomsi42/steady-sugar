@@ -22,7 +22,12 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-sqlite"
+      "expo-sqlite",
+      "expo-localization",
+      ["expo-image-picker", {
+        "photosPermission": "SugarWise needs access to your photos to attach images to food entries.",
+        "cameraPermission": "SugarWise needs access to your camera to take photos for food entries."
+      }]
     ]
   }
 }

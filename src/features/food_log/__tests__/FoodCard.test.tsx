@@ -13,6 +13,7 @@ const baseEntry: FoodEntry = {
   name: 'Oatmeal with berries',
   category: 'breakfast',
   timestamp: new Date('2026-06-17T08:30:00'),
+  photoUri: null,
 };
 
 describe('FoodCard', () => {
@@ -76,5 +77,20 @@ describe('FoodCard', () => {
       <FoodCard entry={entry} onPress={() => {}} />,
     );
     expect(getByText('food.alcohol')).toBeTruthy();
+  });
+
+  it('renders a thumbnail when photoUri is present', async () => {
+    const entry = { ...baseEntry, photoUri: 'file:///path/to/photo.jpg' };
+    const { getByTestId } = await renderWithPaper(
+      <FoodCard entry={entry} onPress={() => {}} />,
+    );
+    expect(getByTestId('food-photo-thumbnail')).toBeTruthy();
+  });
+
+  it('does not render a thumbnail when photoUri is null', async () => {
+    const { queryByTestId } = await renderWithPaper(
+      <FoodCard entry={baseEntry} onPress={() => {}} />,
+    );
+    expect(queryByTestId('food-photo-thumbnail')).toBeNull();
   });
 });

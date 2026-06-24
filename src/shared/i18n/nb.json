@@ -48,7 +48,11 @@
     "drink": "Drikke",
     "treat": "Godbit",
     "alcohol": "Alkohol",
-    "fab_desc": "Registrer et måltid eller drikke"
+    "fab_desc": "Registrer et måltid eller drikke",
+    "photo_label": "Bilde (valgfritt)",
+    "photo_take": "Kamera",
+    "photo_choose": "Galleri",
+    "photo_remove": "Fjern"
   },
   "weight": {
     "label": "Vekt (kg)",

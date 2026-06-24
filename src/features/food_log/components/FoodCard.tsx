@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Text, Chip } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type { FoodEntry } from '../../../shared/database/schema';
@@ -28,18 +28,29 @@ export function FoodCard({ entry, onPress }: Props) {
   return (
     <TouchableOpacity onPress={onPress} style={styles.container} activeOpacity={0.7}>
       <View style={styles.row}>
-        <Text style={styles.name} numberOfLines={1}>
-          {entry.name}
-        </Text>
-        <Chip
-          compact
-          style={[styles.chip, { backgroundColor: chipColor }]}
-          textStyle={styles.chipText}
-        >
-          {t(`food.${entry.category}`)}
-        </Chip>
+        {entry.photoUri ? (
+          <Image
+            source={{ uri: entry.photoUri }}
+            style={styles.thumbnail}
+            testID="food-photo-thumbnail"
+          />
+        ) : null}
+        <View style={styles.content}>
+          <View style={styles.nameRow}>
+            <Text style={styles.name} numberOfLines={1}>
+              {entry.name}
+            </Text>
+            <Chip
+              compact
+              style={[styles.chip, { backgroundColor: chipColor }]}
+              textStyle={styles.chipText}
+            >
+              {t(`food.${entry.category}`)}
+            </Chip>
+          </View>
+          <Text style={styles.timestamp}>{formatTimestamp(new Date(entry.timestamp))}</Text>
+        </View>
       </View>
-      <Text style={styles.timestamp}>{formatTimestamp(new Date(entry.timestamp))}</Text>
     </TouchableOpacity>
   );
 }
@@ -51,6 +62,20 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   row: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  thumbnail: {
+    width: 52,
+    height: 52,
+    borderRadius: 6,
+    flexShrink: 0,
+  },
+  content: {
+    flex: 1,
+  },
+  nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,

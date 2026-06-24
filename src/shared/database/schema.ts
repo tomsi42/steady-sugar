@@ -17,6 +17,7 @@ export const foodEntries = sqliteTable('food_entries', {
     enum: ['breakfast', 'lunch', 'dinner', 'snack', 'treat', 'drink', 'alcohol'],
   }).notNull(),
   timestamp: integer('timestamp', { mode: 'timestamp' }).notNull(),
+  photoUri: text('photo_uri'),
 });
 
 export const weightEntries = sqliteTable('weight_entries', {
