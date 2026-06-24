@@ -8,6 +8,7 @@ import {
   Divider,
   Portal,
   Dialog,
+  Snackbar,
 } from 'react-native-paper';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -16,22 +17,12 @@ import { useSettingsStore } from '../store';
 import { useBloodSugarStore } from '../../blood_sugar/store';
 import { useFoodLogStore } from '../../food_log/store';
 import { useWeightStore } from '../../weight/store';
-import { CATEGORY_COLORS } from '../../food_log/utils/categoryColors';
-import type { FoodCategory } from '../../../shared/database/schema';
+import { exportData } from '../utils/exportData';
+import { importData } from '../utils/importData';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
-const CATEGORIES: FoodCategory[] = [
-  'breakfast',
-  'lunch',
-  'dinner',
-  'snack',
-  'drink',
-  'treat',
-  'alcohol',
-];
-
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 
 export function SettingsScreen({ navigation }: Props) {
   const { t } = useTranslation();
@@ -46,6 +37,7 @@ export function SettingsScreen({ navigation }: Props) {
   const [maxText, setMaxText] = useState(targetMax.toFixed(1));
   const [rangeError, setRangeError] = useState('');
   const [confirmVisible, setConfirmVisible] = useState(false);
+  const [snackMessage, setSnackMessage] = useState('');
 
   function currentData() {
     return {
@@ -83,6 +75,32 @@ export function SettingsScreen({ navigation }: Props) {
     useFoodLogStore.setState({ entries: [] });
     useWeightStore.setState({ entries: [] });
     navigation.reset({ index: 0, routes: [{ name: 'OnboardingWelcome' }] });
+  }
+
+  async function handleExport() {
+    try {
+      await exportData();
+    } catch {
+      setSnackMessage(t('settings.import_error'));
+    }
+  }
+
+  async function handleImport() {
+    const result = await importData();
+    if (result.type === 'cancelled') return;
+    if (result.type === 'error') {
+      setSnackMessage(t('settings.import_error'));
+      return;
+    }
+    if (result.count === 0) {
+      setSnackMessage(t('settings.import_none'));
+    } else {
+      setSnackMessage(t('settings.import_success', { count: result.count }));
+    }
+    // Reload all stores so the log reflects newly imported data
+    useBloodSugarStore.getState().load();
+    useFoodLogStore.getState().load();
+    useWeightStore.getState().load();
   }
 
   return (
@@ -136,27 +154,30 @@ export function SettingsScreen({ navigation }: Props) {
 
         <Divider />
 
-        <List.Subheader style={styles.subheader}>{t('settings.categories')}</List.Subheader>
-        {CATEGORIES.map((cat) => (
-          <List.Item
-            key={cat}
-            title={t(`food.${cat}`)}
-            left={() => (
-              <View style={[styles.categoryDot, { backgroundColor: CATEGORY_COLORS[cat] }]} />
-            )}
-          />
-        ))}
-
-        <Divider />
-
         <List.Subheader style={styles.subheader}>{t('settings.data_management')}</List.Subheader>
-        <List.Item
-          title={t('settings.export_import')}
-          description={t('settings.coming_v2')}
-          left={(props) => <List.Icon {...props} icon="swap-horizontal" color="#BDBDBD" />}
-          titleStyle={styles.disabledText}
-          descriptionStyle={styles.disabledText}
-        />
+        <View style={styles.section}>
+          <Button
+            mode="outlined"
+            icon="export"
+            onPress={handleExport}
+            style={styles.dataButton}
+            testID="export-button"
+          >
+            {t('settings.export_button')}
+          </Button>
+          <Text style={styles.dataDesc}>{t('settings.export_desc')}</Text>
+          <Button
+            mode="outlined"
+            icon="import"
+            onPress={handleImport}
+            style={[styles.dataButton, styles.importButton]}
+            testID="import-button"
+          >
+            {t('settings.import_button')}
+          </Button>
+          <Text style={styles.dataDesc}>{t('settings.import_desc')}</Text>
+        </View>
+
         <View style={styles.section}>
           <Button
             mode="outlined"
@@ -198,6 +219,15 @@ export function SettingsScreen({ navigation }: Props) {
           </Dialog.Actions>
         </Dialog>
       </Portal>
+
+      <Snackbar
+        visible={!!snackMessage}
+        onDismiss={() => setSnackMessage('')}
+        duration={3000}
+        testID="import-snackbar"
+      >
+        {snackMessage}
+      </Snackbar>
     </>
   );
 }
@@ -209,16 +239,10 @@ const styles = StyleSheet.create({
   section: { paddingHorizontal: 16, paddingBottom: 12 },
   rangeInput: { marginBottom: 12 },
   error: { color: '#E53935', marginBottom: 4 },
-  categoryDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    alignSelf: 'center',
-    marginLeft: 16,
-    marginRight: 8,
-  },
-  disabledText: { color: '#BDBDBD' },
-  clearButton: { borderColor: '#E53935' },
+  dataButton: { marginBottom: 4 },
+  importButton: { marginTop: 12 },
+  dataDesc: { fontSize: 12, color: '#9E9E9E', marginBottom: 4 },
+  clearButton: { borderColor: '#E53935', marginTop: 8 },
   versionText: { alignSelf: 'center', color: '#757575', marginRight: 16 },
   aboutText: { color: '#757575' },
 });

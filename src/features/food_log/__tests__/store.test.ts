@@ -21,6 +21,7 @@ function makeEntry(id: number, name = 'Oatmeal'): FoodEntry {
     name,
     category: 'breakfast',
     timestamp: new Date('2026-06-17T08:00:00'),
+    photoUri: null,
   };
 }
 
