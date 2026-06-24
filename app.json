@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "SugarWise",
-    "slug": "sugar-wise",
+    "name": "SteadySugar",
+    "slug": "steady-sugar",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -27,8 +27,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "SugarWise needs access to your photos to attach images to food entries.",
-          "cameraPermission": "SugarWise needs access to your camera to take photos for food entries."
+          "photosPermission": "SteadySugar needs access to your photos to attach images to food entries.",
+          "cameraPermission": "SteadySugar needs access to your camera to take photos for food entries."
         }
       ],
       "expo-sharing"

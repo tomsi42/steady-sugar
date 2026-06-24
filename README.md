@@ -1,4 +1,4 @@
-# SugarWise
+# SteadySugar
 
 A personal health tracking app for iOS. Log blood sugar readings, food and drink, and weight — all in one place. Built with Expo and React Native.
 
@@ -37,7 +37,7 @@ A personal health tracking app for iOS. Log blood sugar readings, food and drink
 
 ```bash
 git clone <repo-url>
-cd sugar-wise
+cd steady-sugar
 npm install
 ```
 

@@ -1,4 +1,4 @@
-# SugarWise — Codebase Map
+# SteadySugar — Codebase Map
 
 Quick-reference for navigating the project without scanning every file. Keep this file up to date when adding files, changing patterns, or learning new gotchas.
 
@@ -27,7 +27,7 @@ Quick-reference for navigating the project without scanning every file. Keep thi
 |---|---|
 | `App.tsx` | Entry point. Initialises DB, loads settings, decides onboarding vs main nav. |
 | `index.ts` | Expo entry — just registers App. |
-| `app.json` | Expo config: name "SugarWise", slug "sugar-wise", version "1.0.0", plugins: ["expo-sqlite"]. |
+| `app.json` | Expo config: name "SteadySugar", slug "steady-sugar", version "1.0.0", plugins: ["expo-sqlite"]. |
 | `PLAN.md` | Milestone plan. Source of truth for what to build and in what order. |
 | `SPECIFICATION.md` | Full product spec. Wins in any disagreement with code or PLAN.md. |
 | `MAP.md` | This file. |
@@ -151,7 +151,7 @@ The Settings cog uses `useNavigation<NavigationProp<RootStackParamList>>()` insi
 ### Connection & Initialisation
 
 - **File:** `src/shared/database/client.ts`
-- `openDatabaseSync('sugarwise.db')` — synchronous Expo SQLite
+- `openDatabaseSync('steadysugar.db')` — synchronous Expo SQLite
 - `drizzle(sqlite, { schema })` — Drizzle ORM wrapper
 - `initDatabase()` — called once in `App.tsx` before anything else; runs `CREATE TABLE IF NOT EXISTS` for all four tables + default settings row
 - All Drizzle queries use the **synchronous API**: `.all()`, `.get()`, `.run()`, `.returning().get()` — no async/await anywhere in repositories

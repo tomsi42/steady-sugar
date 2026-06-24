@@ -103,7 +103,7 @@
     "import_desc": "Gjenopprett oppføringer fra sikkerhetskopi",
     "import_success": "Importerte {{count}} oppføringer",
     "import_none": "Ingen nye oppføringer funnet",
-    "import_error": "Kunne ikke lese filen. Er det en gyldig SugarWise-sikkerhetskopi?",
+    "import_error": "Kunne ikke lese filen. Er det en gyldig SteadySugar-sikkerhetskopi?",
     "clear_button": "Slett alle data",
     "confirm_title": "Slette alle data?",
     "confirm_body": "Dette sletter permanent alle blodsukkermålinger, matoppføringer, vektoppføringer og tilbakestiller innstillingene dine. Dette kan ikke angres.",

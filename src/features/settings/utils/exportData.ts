@@ -43,7 +43,7 @@ export async function exportData(): Promise<void> {
 
   const json = JSON.stringify(payload, null, 2);
   const date = new Date().toISOString().slice(0, 10);
-  const filename = `SugarWise-backup-${date}.json`;
+  const filename = `SteadySugar-backup-${date}.json`;
   const path = `${FileSystem.cacheDirectory}${filename}`;
 
   await FileSystem.writeAsStringAsync(path, json, {
@@ -51,6 +51,6 @@ export async function exportData(): Promise<void> {
   });
   await Sharing.shareAsync(path, {
     mimeType: 'application/json',
-    dialogTitle: 'Save SugarWise backup',
+    dialogTitle: 'Save SteadySugar backup',
   });
 }

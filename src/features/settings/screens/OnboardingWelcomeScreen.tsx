@@ -15,7 +15,7 @@ export function OnboardingWelcomeScreen({ navigation }: Props) {
     <View style={styles.container}>
       <MaterialCommunityIcons name="water" size={72} color="#00897B" style={styles.icon} />
       <Text variant="displaySmall" style={styles.title}>
-        SugarWise
+        SteadySugar
       </Text>
       <Text variant="bodyLarge" style={styles.subtitle}>
         {t('onboarding.welcome_subtitle')}

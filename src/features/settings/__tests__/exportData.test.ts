@@ -87,6 +87,6 @@ describe('exportData', () => {
   it('uses a filename containing the current date', async () => {
     await exportData();
     const path: string = mockWriteFile.mock.calls[0][0];
-    expect(path).toMatch(/SugarWise-backup-\d{4}-\d{2}-\d{2}\.json$/);
+    expect(path).toMatch(/SteadySugar-backup-\d{4}-\d{2}-\d{2}\.json$/);
   });
 });

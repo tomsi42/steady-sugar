@@ -1,8 +1,8 @@
-# SugarWise — Detailed Specification
+# SteadySugar — Detailed Specification
 
 ## 1. Overview
 
-**SugarWise** is a mobile health application for logging blood sugar measurements, food/drink intake, and weight tracking. The app helps users monitor their diabetes type 2 management through data visualization and pattern recognition, supporting lifestyle changes.
+**SteadySugar** is a mobile health application for logging blood sugar measurements, food/drink intake, and weight tracking. The app helps users monitor their diabetes type 2 management through data visualization and pattern recognition, supporting lifestyle changes.
 
 **Core value proposition:** Simple, fast logging with clear visual feedback on blood sugar trends and their relationship to meals.
 
@@ -248,7 +248,7 @@
 ## 7. Onboarding Flow
 
 ### First Run
-1. **Welcome screen:** Brief description of SugarWise purpose ("Track your blood sugar, food, and weight to support your health journey")
+1. **Welcome screen:** Brief description of SteadySugar purpose ("Track your blood sugar, food, and weight to support your health journey")
 2. **Name input:** "What should we call you?" (text field, required)
 3. **Target range setup:** 
    - "What's your target blood sugar range?"

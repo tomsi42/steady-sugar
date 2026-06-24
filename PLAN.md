@@ -1,4 +1,4 @@
-# SugarWise — Development Plan
+# SteadySugar — Development Plan
 
 ## Source of Truth
 
@@ -328,7 +328,7 @@
 2. **Export:**
    - Serialise all four tables (`blood_sugar_readings`, `food_entries`, `weight_entries`, `app_settings`) to a single JSON object
    - `photo_uri` fields are excluded from the export
-   - Write JSON to a temporary file (`SugarWise-backup-YYYY-MM-DD.json`)
+   - Write JSON to a temporary file (`SteadySugar-backup-YYYY-MM-DD.json`)
    - Trigger native share sheet so the user can save to Files, send via AirDrop, etc.
 3. **Import:**
    - Open document picker filtered to `.json` files

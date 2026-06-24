@@ -103,7 +103,7 @@
     "import_desc": "Restore records from a backup JSON file",
     "import_success": "Imported {{count}} records",
     "import_none": "No new records found",
-    "import_error": "Could not read file. Is it a valid SugarWise backup?",
+    "import_error": "Could not read file. Is it a valid SteadySugar backup?",
     "clear_button": "Clear All Data",
     "confirm_title": "Clear all data?",
     "confirm_body": "This permanently deletes all blood sugar readings, food entries, weight entries, and resets your settings. This cannot be undone.",
