@@ -6,15 +6,11 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { Text, TextInput, Button, HelperText } from 'react-native-paper';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../app/navigation';
 import { useWeightStore } from '../store';
-import {
-  parseDateText,
-  formatDateText,
-  formatDateInput,
-} from '../../../shared/utils/dateTimeText';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WeightForm'>;
 
@@ -35,7 +31,7 @@ export function WeightFormScreen({ route, navigation }: Props) {
   const initial = existing ? new Date(existing.timestamp) : new Date();
 
   const [valueText, setValueText] = useState(existing ? String(existing.valueKg) : '');
-  const [dateText, setDateText] = useState(formatDateText(initial));
+  const [date, setDate] = useState<Date>(initial);
   const [notes, setNotes] = useState(existing?.notes ?? '');
   const [valueError, setValueError] = useState('');
   const [dateError, setDateError] = useState('');
@@ -57,6 +53,13 @@ export function WeightFormScreen({ route, navigation }: Props) {
     }
   }
 
+  function handleDateChange(_event: DateTimePickerEvent, selected?: Date) {
+    if (selected) {
+      setDate(selected);
+      setDateError('');
+    }
+  }
+
   function handleSave() {
     const num = parseFloat(valueText);
     if (!valueText.trim() || isNaN(num)) {
@@ -64,13 +67,10 @@ export function WeightFormScreen({ route, navigation }: Props) {
       return;
     }
 
-    const parsed = parseDateText(dateText);
-    if (!parsed) {
-      setDateError(t('weight.error_date'));
-      return;
-    }
-    const ts = dateAtNoon(parsed);
-    if (ts > new Date()) {
+    const ts = dateAtNoon(date);
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
+    if (ts > endOfToday) {
       setDateError(t('weight.error_future'));
       return;
     }
@@ -86,6 +86,9 @@ export function WeightFormScreen({ route, navigation }: Props) {
 
     navigation.goBack();
   }
+
+  const maxDate = new Date();
+  maxDate.setHours(23, 59, 59, 999);
 
   return (
     <KeyboardAvoidingView
@@ -117,18 +120,13 @@ export function WeightFormScreen({ route, navigation }: Props) {
         <Text variant="labelLarge" style={styles.sectionLabel}>
           {t('common.date')}
         </Text>
-        <TextInput
-          label={t('common.date_placeholder')}
-          value={dateText}
-          onChangeText={(v) => {
-            setDateText(formatDateInput(v));
-            setDateError('');
-          }}
-          mode="outlined"
-          keyboardType="number-pad"
-          maxLength={10}
-          error={!!dateError}
-          testID="date-input"
+        <DateTimePicker
+          value={date}
+          mode="date"
+          maximumDate={maxDate}
+          display={Platform.OS === 'ios' ? 'compact' : 'spinner'}
+          onChange={handleDateChange}
+          testID="date-picker"
         />
         {!!dateError && <HelperText type="error">{dateError}</HelperText>}
 

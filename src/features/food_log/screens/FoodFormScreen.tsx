@@ -9,6 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { Text, TextInput, Button, HelperText, Chip, IconButton } from 'react-native-paper';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -16,14 +17,6 @@ import type { RootStackParamList } from '../../../app/navigation';
 import type { FoodCategory } from '../../../shared/database/schema';
 import { useFoodLogStore } from '../store';
 import { CATEGORY_COLORS } from '../utils/categoryColors';
-import {
-  parseDateText,
-  parseTimeText,
-  formatDateText,
-  formatTimeText,
-  formatDateInput,
-  formatTimeInput,
-} from '../../../shared/utils/dateTimeText';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'FoodForm'>;
 
@@ -37,6 +30,15 @@ const CATEGORIES: FoodCategory[] = [
   'alcohol',
 ];
 
+function isToday(d: Date): boolean {
+  const today = new Date();
+  return (
+    d.getDate() === today.getDate() &&
+    d.getMonth() === today.getMonth() &&
+    d.getFullYear() === today.getFullYear()
+  );
+}
+
 export function FoodFormScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
   const { entryId } = route.params ?? {};
@@ -49,8 +51,7 @@ export function FoodFormScreen({ route, navigation }: Props) {
 
   const [name, setName] = useState(existing?.name ?? '');
   const [category, setCategory] = useState<FoodCategory>(existing?.category ?? 'snack');
-  const [dateText, setDateText] = useState(formatDateText(initial));
-  const [timeText, setTimeText] = useState(formatTimeText(initial));
+  const [timestamp, setTimestamp] = useState<Date>(initial);
   const [photoUri, setPhotoUri] = useState<string | null>(existing?.photoUri ?? null);
   const [nameError, setNameError] = useState('');
   const [timestampError, setTimestampError] = useState('');
@@ -93,12 +94,38 @@ export function FoodFormScreen({ route, navigation }: Props) {
     }
   }
 
-  function parseTimestamp(): Date | null {
-    const d = parseDateText(dateText);
-    const t2 = parseTimeText(timeText);
-    if (!d || !t2) return null;
-    d.setHours(t2.hours, t2.minutes, 0, 0);
-    return d;
+  function handleDateChange(_event: DateTimePickerEvent, selected?: Date) {
+    if (selected) {
+      setTimestamp(
+        new Date(
+          selected.getFullYear(),
+          selected.getMonth(),
+          selected.getDate(),
+          timestamp.getHours(),
+          timestamp.getMinutes(),
+          0,
+          0,
+        ),
+      );
+      setTimestampError('');
+    }
+  }
+
+  function handleTimeChange(_event: DateTimePickerEvent, selected?: Date) {
+    if (selected) {
+      setTimestamp(
+        new Date(
+          timestamp.getFullYear(),
+          timestamp.getMonth(),
+          timestamp.getDate(),
+          selected.getHours(),
+          selected.getMinutes(),
+          0,
+          0,
+        ),
+      );
+      setTimestampError('');
+    }
   }
 
   function handleSave() {
@@ -107,21 +134,16 @@ export function FoodFormScreen({ route, navigation }: Props) {
       return;
     }
 
-    const ts = parseTimestamp();
-    if (!ts) {
-      setTimestampError(t('food.error_timestamp'));
-      return;
-    }
-    if (ts > new Date()) {
+    if (timestamp > new Date()) {
       setTimestampError(t('food.error_future'));
       return;
     }
     setTimestampError('');
 
     if (isEdit && existing) {
-      update(existing.id, { name: name.trim(), category, timestamp: ts, photoUri });
+      update(existing.id, { name: name.trim(), category, timestamp, photoUri });
     } else {
-      add({ name: name.trim(), category, timestamp: ts, photoUri });
+      add({ name: name.trim(), category, timestamp, photoUri });
     }
 
     navigation.goBack();
@@ -186,7 +208,6 @@ export function FoodFormScreen({ route, navigation }: Props) {
         />
         {!!nameError && <HelperText type="error">{nameError}</HelperText>}
 
-        {/* Photo section */}
         <Text variant="labelLarge" style={styles.sectionLabel}>
           {t('food.photo_label')}
         </Text>
@@ -229,31 +250,22 @@ export function FoodFormScreen({ route, navigation }: Props) {
           {t('common.when')}
         </Text>
         <View style={styles.dateTimeRow}>
-          <TextInput
-            label={t('common.date_placeholder')}
-            value={dateText}
-            onChangeText={(v) => {
-              setDateText(formatDateInput(v));
-              setTimestampError('');
-            }}
-            mode="outlined"
-            keyboardType="number-pad"
-            maxLength={10}
-            style={styles.dateInput}
-            testID="date-input"
+          <DateTimePicker
+            value={timestamp}
+            mode="date"
+            maximumDate={new Date()}
+            display={Platform.OS === 'ios' ? 'compact' : 'spinner'}
+            onChange={handleDateChange}
+            testID="date-picker"
           />
-          <TextInput
-            label={t('common.time_placeholder')}
-            value={timeText}
-            onChangeText={(v) => {
-              setTimeText(formatTimeInput(v));
-              setTimestampError('');
-            }}
-            mode="outlined"
-            keyboardType="number-pad"
-            maxLength={5}
-            style={styles.timeInput}
-            testID="time-input"
+          <DateTimePicker
+            value={timestamp}
+            mode="time"
+            is24Hour
+            maximumDate={isToday(timestamp) ? new Date() : undefined}
+            display={Platform.OS === 'ios' ? 'compact' : 'spinner'}
+            onChange={handleTimeChange}
+            testID="time-picker"
           />
         </View>
         {!!timestampError && <HelperText type="error">{timestampError}</HelperText>}
@@ -285,9 +297,7 @@ const styles = StyleSheet.create({
   photoPreview: { position: 'relative', alignSelf: 'flex-start' },
   previewImage: { width: 120, height: 120, borderRadius: 8 },
   removeButton: { position: 'absolute', top: -8, right: -8, margin: 0 },
-  dateTimeRow: { flexDirection: 'row', gap: 12 },
-  dateInput: { flex: 3 },
-  timeInput: { flex: 2 },
+  dateTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   saveButton: { marginTop: 32 },
   saveButtonContent: { paddingVertical: 6 },
 });

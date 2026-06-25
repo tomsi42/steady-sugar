@@ -7,23 +7,25 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { Text, TextInput, Button, SegmentedButtons, HelperText } from 'react-native-paper';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../app/navigation';
 import type { BloodSugarContext } from '../../../shared/database/schema';
 import { useBloodSugarStore } from '../store';
-import {
-  parseDateText,
-  parseTimeText,
-  formatDateText,
-  formatTimeText,
-  formatDateInput,
-  formatTimeInput,
-} from '../../../shared/utils/dateTimeText';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BloodSugarForm'>;
 
 const CONTEXT_OPTIONS: BloodSugarContext[] = ['fasting', 'before_meal', 'after_meal_2h', 'random'];
+
+function isToday(d: Date): boolean {
+  const today = new Date();
+  return (
+    d.getDate() === today.getDate() &&
+    d.getMonth() === today.getMonth() &&
+    d.getFullYear() === today.getFullYear()
+  );
+}
 
 export function BloodSugarFormScreen({ route, navigation }: Props) {
   const { t } = useTranslation();
@@ -38,8 +40,7 @@ export function BloodSugarFormScreen({ route, navigation }: Props) {
   const [valueText, setValueText] = useState(existing ? String(existing.valueMmol) : '');
   const [context, setContext] = useState<BloodSugarContext>(existing?.context ?? 'random');
   const [notes, setNotes] = useState(existing?.notes ?? '');
-  const [dateText, setDateText] = useState(formatDateText(initial));
-  const [timeText, setTimeText] = useState(formatTimeText(initial));
+  const [timestamp, setTimestamp] = useState<Date>(initial);
   const [valueError, setValueError] = useState('');
   const [timestampError, setTimestampError] = useState('');
   const [softWarning, setSoftWarning] = useState('');
@@ -60,12 +61,38 @@ export function BloodSugarFormScreen({ route, navigation }: Props) {
     }
   }
 
-  function parseTimestamp(): Date | null {
-    const d = parseDateText(dateText);
-    const t2 = parseTimeText(timeText);
-    if (!d || !t2) return null;
-    d.setHours(t2.hours, t2.minutes, 0, 0);
-    return d;
+  function handleDateChange(_event: DateTimePickerEvent, selected?: Date) {
+    if (selected) {
+      setTimestamp(
+        new Date(
+          selected.getFullYear(),
+          selected.getMonth(),
+          selected.getDate(),
+          timestamp.getHours(),
+          timestamp.getMinutes(),
+          0,
+          0,
+        ),
+      );
+      setTimestampError('');
+    }
+  }
+
+  function handleTimeChange(_event: DateTimePickerEvent, selected?: Date) {
+    if (selected) {
+      setTimestamp(
+        new Date(
+          timestamp.getFullYear(),
+          timestamp.getMonth(),
+          timestamp.getDate(),
+          selected.getHours(),
+          selected.getMinutes(),
+          0,
+          0,
+        ),
+      );
+      setTimestampError('');
+    }
   }
 
   function handleSave() {
@@ -75,21 +102,16 @@ export function BloodSugarFormScreen({ route, navigation }: Props) {
       return;
     }
 
-    const ts = parseTimestamp();
-    if (!ts) {
-      setTimestampError(t('blood_sugar.error_timestamp'));
-      return;
-    }
-    if (ts > new Date()) {
+    if (timestamp > new Date()) {
       setTimestampError(t('blood_sugar.error_future'));
       return;
     }
     setTimestampError('');
 
     if (isEdit && existing) {
-      update(existing.id, { valueMmol: num, context, notes: notes || '', timestamp: ts });
+      update(existing.id, { valueMmol: num, context, notes: notes || '', timestamp });
     } else {
-      add({ valueMmol: num, context, notes: notes || '', timestamp: ts });
+      add({ valueMmol: num, context, notes: notes || '', timestamp });
     }
 
     navigation.goBack();
@@ -140,31 +162,22 @@ export function BloodSugarFormScreen({ route, navigation }: Props) {
           {t('common.when')}
         </Text>
         <View style={styles.dateTimeRow}>
-          <TextInput
-            label={t('common.date_placeholder')}
-            value={dateText}
-            onChangeText={(v) => {
-              setDateText(formatDateInput(v));
-              setTimestampError('');
-            }}
-            mode="outlined"
-            keyboardType="number-pad"
-            maxLength={10}
-            style={styles.dateInput}
-            testID="date-input"
+          <DateTimePicker
+            value={timestamp}
+            mode="date"
+            maximumDate={new Date()}
+            display={Platform.OS === 'ios' ? 'compact' : 'spinner'}
+            onChange={handleDateChange}
+            testID="date-picker"
           />
-          <TextInput
-            label={t('common.time_placeholder')}
-            value={timeText}
-            onChangeText={(v) => {
-              setTimeText(formatTimeInput(v));
-              setTimestampError('');
-            }}
-            mode="outlined"
-            keyboardType="number-pad"
-            maxLength={5}
-            style={styles.timeInput}
-            testID="time-input"
+          <DateTimePicker
+            value={timestamp}
+            mode="time"
+            is24Hour
+            maximumDate={isToday(timestamp) ? new Date() : undefined}
+            display={Platform.OS === 'ios' ? 'compact' : 'spinner'}
+            onChange={handleTimeChange}
+            testID="time-picker"
           />
         </View>
         {!!timestampError && <HelperText type="error">{timestampError}</HelperText>}
@@ -200,9 +213,7 @@ const styles = StyleSheet.create({
   valueInput: { fontSize: 24 },
   sectionLabel: { marginTop: 20, marginBottom: 8, color: '#757575' },
   segmented: { flexWrap: 'wrap' },
-  dateTimeRow: { flexDirection: 'row', gap: 12 },
-  dateInput: { flex: 3 },
-  timeInput: { flex: 2 },
+  dateTimeRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   notes: { marginTop: 20 },
   saveButton: { marginTop: 32 },
   saveButtonContent: { paddingVertical: 6 },
