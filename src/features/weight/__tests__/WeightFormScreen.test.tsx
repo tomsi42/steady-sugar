@@ -3,8 +3,8 @@ import { render, fireEvent, act } from '@testing-library/react-native';
 import { PaperProvider } from 'react-native-paper';
 import { WeightFormScreen } from '../screens/WeightFormScreen';
 
-const mockAdd = jest.fn();
-const mockUpdate = jest.fn();
+const mockAdd = jest.fn().mockResolvedValue(undefined);
+const mockUpdate = jest.fn().mockResolvedValue(undefined);
 
 jest.mock('../store', () => ({
   useWeightStore: (selector: (s: any) => any) =>

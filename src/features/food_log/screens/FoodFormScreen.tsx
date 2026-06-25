@@ -9,7 +9,6 @@ import {
   Alert,
 } from 'react-native';
 import { Text, TextInput, Button, HelperText, Chip, IconButton } from 'react-native-paper';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 import * as ImagePicker from 'expo-image-picker';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -17,6 +16,7 @@ import type { RootStackParamList } from '../../../app/navigation';
 import type { FoodCategory } from '../../../shared/database/schema';
 import { useFoodLogStore } from '../store';
 import { CATEGORY_COLORS } from '../utils/categoryColors';
+import { DateTimeInput } from '../../../shared/components/DateTimeInput';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'FoodForm'>;
 
@@ -94,41 +94,37 @@ export function FoodFormScreen({ route, navigation }: Props) {
     }
   }
 
-  function handleDateChange(_event: DateTimePickerEvent, selected?: Date) {
-    if (selected) {
-      setTimestamp(
-        new Date(
-          selected.getFullYear(),
-          selected.getMonth(),
-          selected.getDate(),
-          timestamp.getHours(),
-          timestamp.getMinutes(),
-          0,
-          0,
-        ),
-      );
-      setTimestampError('');
-    }
+  function handleDateChange(selected: Date) {
+    setTimestamp(
+      new Date(
+        selected.getFullYear(),
+        selected.getMonth(),
+        selected.getDate(),
+        timestamp.getHours(),
+        timestamp.getMinutes(),
+        0,
+        0,
+      ),
+    );
+    setTimestampError('');
   }
 
-  function handleTimeChange(_event: DateTimePickerEvent, selected?: Date) {
-    if (selected) {
-      setTimestamp(
-        new Date(
-          timestamp.getFullYear(),
-          timestamp.getMonth(),
-          timestamp.getDate(),
-          selected.getHours(),
-          selected.getMinutes(),
-          0,
-          0,
-        ),
-      );
-      setTimestampError('');
-    }
+  function handleTimeChange(selected: Date) {
+    setTimestamp(
+      new Date(
+        timestamp.getFullYear(),
+        timestamp.getMonth(),
+        timestamp.getDate(),
+        selected.getHours(),
+        selected.getMinutes(),
+        0,
+        0,
+      ),
+    );
+    setTimestampError('');
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!name.trim()) {
       setNameError(t('food.error_name'));
       return;
@@ -141,9 +137,9 @@ export function FoodFormScreen({ route, navigation }: Props) {
     setTimestampError('');
 
     if (isEdit && existing) {
-      update(existing.id, { name: name.trim(), category, timestamp, photoUri });
+      await update(existing.id, { name: name.trim(), category, timestamp, photoUri });
     } else {
-      add({ name: name.trim(), category, timestamp, photoUri });
+      await add({ name: name.trim(), category, timestamp, photoUri });
     }
 
     navigation.goBack();
@@ -208,62 +204,65 @@ export function FoodFormScreen({ route, navigation }: Props) {
         />
         {!!nameError && <HelperText type="error">{nameError}</HelperText>}
 
-        <Text variant="labelLarge" style={styles.sectionLabel}>
-          {t('food.photo_label')}
-        </Text>
-        {photoUri ? (
-          <View style={styles.photoPreview} testID="photo-preview">
-            <Image source={{ uri: photoUri }} style={styles.previewImage} />
-            <IconButton
-              icon="close-circle"
-              size={24}
-              iconColor="#E53935"
-              style={styles.removeButton}
-              onPress={() => setPhotoUri(null)}
-              testID="remove-photo-button"
-            />
-          </View>
-        ) : (
-          <View style={styles.photoButtons}>
-            <Button
-              mode="outlined"
-              icon="camera"
-              onPress={handleTakePhoto}
-              style={styles.photoButton}
-              testID="take-photo-button"
-            >
-              {t('food.photo_take')}
-            </Button>
-            <Button
-              mode="outlined"
-              icon="image"
-              onPress={handleChoosePhoto}
-              style={styles.photoButton}
-              testID="choose-photo-button"
-            >
-              {t('food.photo_choose')}
-            </Button>
-          </View>
+        {/* Photo picker is native-only — camera/gallery not available on web */}
+        {Platform.OS !== 'web' && (
+          <>
+            <Text variant="labelLarge" style={styles.sectionLabel}>
+              {t('food.photo_label')}
+            </Text>
+            {photoUri ? (
+              <View style={styles.photoPreview} testID="photo-preview">
+                <Image source={{ uri: photoUri }} style={styles.previewImage} />
+                <IconButton
+                  icon="close-circle"
+                  size={24}
+                  iconColor="#E53935"
+                  style={styles.removeButton}
+                  onPress={() => setPhotoUri(null)}
+                  testID="remove-photo-button"
+                />
+              </View>
+            ) : (
+              <View style={styles.photoButtons}>
+                <Button
+                  mode="outlined"
+                  icon="camera"
+                  onPress={handleTakePhoto}
+                  style={styles.photoButton}
+                  testID="take-photo-button"
+                >
+                  {t('food.photo_take')}
+                </Button>
+                <Button
+                  mode="outlined"
+                  icon="image"
+                  onPress={handleChoosePhoto}
+                  style={styles.photoButton}
+                  testID="choose-photo-button"
+                >
+                  {t('food.photo_choose')}
+                </Button>
+              </View>
+            )}
+          </>
         )}
 
         <Text variant="labelLarge" style={styles.sectionLabel}>
           {t('common.when')}
         </Text>
         <View style={styles.dateTimeRow}>
-          <DateTimePicker
+          <DateTimeInput
             value={timestamp}
             mode="date"
             maximumDate={new Date()}
-            display={Platform.OS === 'ios' ? 'compact' : 'spinner'}
             onChange={handleDateChange}
             testID="date-picker"
           />
-          <DateTimePicker
+          <DateTimeInput
             value={timestamp}
             mode="time"
             is24Hour
             maximumDate={isToday(timestamp) ? new Date() : undefined}
-            display={Platform.OS === 'ios' ? 'compact' : 'spinner'}
             onChange={handleTimeChange}
             testID="time-picker"
           />

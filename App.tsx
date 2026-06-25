@@ -14,11 +14,14 @@ export default function App() {
   const [isOnboarded, setIsOnboarded] = useState(false);
 
   useEffect(() => {
-    initDatabase();
-    useSettingsStore.getState().load();
-    const s = useSettingsStore.getState().settings;
-    setIsOnboarded(s !== null && s.userName.length > 0);
-    setDbReady(true);
+    async function setup() {
+      await initDatabase();
+      await useSettingsStore.getState().load();
+      const s = useSettingsStore.getState().settings;
+      setIsOnboarded(s !== null && s.userName.length > 0);
+      setDbReady(true);
+    }
+    setup();
   }, []);
 
   if (!dbReady) {

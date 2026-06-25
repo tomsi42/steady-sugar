@@ -7,12 +7,12 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { Text, TextInput, Button, SegmentedButtons, HelperText } from 'react-native-paper';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../app/navigation';
 import type { BloodSugarContext } from '../../../shared/database/schema';
 import { useBloodSugarStore } from '../store';
+import { DateTimeInput } from '../../../shared/components/DateTimeInput';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BloodSugarForm'>;
 
@@ -61,41 +61,37 @@ export function BloodSugarFormScreen({ route, navigation }: Props) {
     }
   }
 
-  function handleDateChange(_event: DateTimePickerEvent, selected?: Date) {
-    if (selected) {
-      setTimestamp(
-        new Date(
-          selected.getFullYear(),
-          selected.getMonth(),
-          selected.getDate(),
-          timestamp.getHours(),
-          timestamp.getMinutes(),
-          0,
-          0,
-        ),
-      );
-      setTimestampError('');
-    }
+  function handleDateChange(selected: Date) {
+    setTimestamp(
+      new Date(
+        selected.getFullYear(),
+        selected.getMonth(),
+        selected.getDate(),
+        timestamp.getHours(),
+        timestamp.getMinutes(),
+        0,
+        0,
+      ),
+    );
+    setTimestampError('');
   }
 
-  function handleTimeChange(_event: DateTimePickerEvent, selected?: Date) {
-    if (selected) {
-      setTimestamp(
-        new Date(
-          timestamp.getFullYear(),
-          timestamp.getMonth(),
-          timestamp.getDate(),
-          selected.getHours(),
-          selected.getMinutes(),
-          0,
-          0,
-        ),
-      );
-      setTimestampError('');
-    }
+  function handleTimeChange(selected: Date) {
+    setTimestamp(
+      new Date(
+        timestamp.getFullYear(),
+        timestamp.getMonth(),
+        timestamp.getDate(),
+        selected.getHours(),
+        selected.getMinutes(),
+        0,
+        0,
+      ),
+    );
+    setTimestampError('');
   }
 
-  function handleSave() {
+  async function handleSave() {
     const num = parseFloat(valueText);
     if (!valueText.trim() || isNaN(num)) {
       setValueError(t('blood_sugar.error_required'));
@@ -109,9 +105,9 @@ export function BloodSugarFormScreen({ route, navigation }: Props) {
     setTimestampError('');
 
     if (isEdit && existing) {
-      update(existing.id, { valueMmol: num, context, notes: notes || '', timestamp });
+      await update(existing.id, { valueMmol: num, context, notes: notes || '', timestamp });
     } else {
-      add({ valueMmol: num, context, notes: notes || '', timestamp });
+      await add({ valueMmol: num, context, notes: notes || '', timestamp });
     }
 
     navigation.goBack();
@@ -162,20 +158,18 @@ export function BloodSugarFormScreen({ route, navigation }: Props) {
           {t('common.when')}
         </Text>
         <View style={styles.dateTimeRow}>
-          <DateTimePicker
+          <DateTimeInput
             value={timestamp}
             mode="date"
             maximumDate={new Date()}
-            display={Platform.OS === 'ios' ? 'compact' : 'spinner'}
             onChange={handleDateChange}
             testID="date-picker"
           />
-          <DateTimePicker
+          <DateTimeInput
             value={timestamp}
             mode="time"
             is24Hour
             maximumDate={isToday(timestamp) ? new Date() : undefined}
-            display={Platform.OS === 'ios' ? 'compact' : 'spinner'}
             onChange={handleTimeChange}
             testID="time-picker"
           />

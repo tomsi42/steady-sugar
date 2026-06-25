@@ -6,11 +6,11 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { Text, TextInput, Button, HelperText } from 'react-native-paper';
-import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../../app/navigation';
 import { useWeightStore } from '../store';
+import { DateTimeInput } from '../../../shared/components/DateTimeInput';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WeightForm'>;
 
@@ -53,14 +53,12 @@ export function WeightFormScreen({ route, navigation }: Props) {
     }
   }
 
-  function handleDateChange(_event: DateTimePickerEvent, selected?: Date) {
-    if (selected) {
-      setDate(selected);
-      setDateError('');
-    }
+  function handleDateChange(selected: Date) {
+    setDate(selected);
+    setDateError('');
   }
 
-  function handleSave() {
+  async function handleSave() {
     const num = parseFloat(valueText);
     if (!valueText.trim() || isNaN(num)) {
       setValueError(t('weight.error_required'));
@@ -79,9 +77,9 @@ export function WeightFormScreen({ route, navigation }: Props) {
     const rounded = Math.round(num * 10) / 10;
 
     if (isEdit && existing) {
-      update(existing.id, { valueKg: rounded, notes: notes || '', timestamp: ts });
+      await update(existing.id, { valueKg: rounded, notes: notes || '', timestamp: ts });
     } else {
-      add({ valueKg: rounded, notes: notes || '', timestamp: ts });
+      await add({ valueKg: rounded, notes: notes || '', timestamp: ts });
     }
 
     navigation.goBack();
@@ -120,11 +118,10 @@ export function WeightFormScreen({ route, navigation }: Props) {
         <Text variant="labelLarge" style={styles.sectionLabel}>
           {t('common.date')}
         </Text>
-        <DateTimePicker
+        <DateTimeInput
           value={date}
           mode="date"
           maximumDate={maxDate}
-          display={Platform.OS === 'ios' ? 'compact' : 'spinner'}
           onChange={handleDateChange}
           testID="date-picker"
         />

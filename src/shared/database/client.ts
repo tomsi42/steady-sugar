@@ -1,12 +1,16 @@
 import * as SQLite from 'expo-sqlite';
-import { drizzle } from 'drizzle-orm/expo-sqlite';
+import { drizzle, type ExpoSQLiteDatabase } from 'drizzle-orm/expo-sqlite';
 import * as schema from './schema';
 
-const sqlite = SQLite.openDatabaseSync('steadysugar.db');
-export const db = drizzle(sqlite, { schema });
+// Both set by initDatabase() — guaranteed to run before any store action
+export let sqlite: SQLite.SQLiteDatabase = null as unknown as SQLite.SQLiteDatabase;
+export let db: ExpoSQLiteDatabase<typeof schema> = null as unknown as ExpoSQLiteDatabase<typeof schema>;
 
 export async function initDatabase() {
-  sqlite.execSync(`
+  sqlite = await SQLite.openDatabaseAsync('steadysugar.db');
+  db = drizzle(sqlite, { schema });
+
+  await sqlite.execAsync(`
     CREATE TABLE IF NOT EXISTS blood_sugar_readings (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       value_mmol REAL NOT NULL,
@@ -45,7 +49,7 @@ export async function initDatabase() {
 
   // v1.1.0 migration: add photo_uri to food_entries
   try {
-    sqlite.execSync(`ALTER TABLE food_entries ADD COLUMN photo_uri TEXT;`);
+    await sqlite.execAsync(`ALTER TABLE food_entries ADD COLUMN photo_uri TEXT;`);
   } catch {
     // column already exists — safe to ignore
   }

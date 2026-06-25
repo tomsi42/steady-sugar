@@ -22,6 +22,7 @@
 | M7 | Localization | Norwegian language support, auto-detected from device | v1.1.0 |
 | M8 | Food Photos | Optional photo attachment on food entries | v1.1.0 |
 | M9 | Data Export / Import | JSON backup and restore via native share sheet | v1.1.0 |
+| M10 | Web Support | Async data layer + web UI fallbacks; app runs in macOS browser | v1.2.0 |
 
 ---
 
@@ -347,6 +348,88 @@
 - [ ] Importing a malformed file shows a clear error message without corrupting data
 - [ ] Importing the same file twice does not create duplicate records
 - [ ] Import summary snackbar shows the count of records added
+
+---
+
+---
+
+## M10 — Web Support
+
+**Goal:** The app runs fully in a macOS browser tab (Safari, Chrome). All data is persisted locally via SQLite (wa-sqlite/WebAssembly). The blocking issue from v1.1.1 exploratory work — `Sync operation timeout` from `Atomics.wait()` — is resolved by migrating the entire data layer to the async `expo-sqlite` API.
+
+**Pre-existing groundwork (already done in v1.1.1):**
+- `metro.config.js` — wasm asset extension for wa-sqlite
+- `react-dom` and `react-native-web` installed
+- `dist/serve.json` — COOP/COEP headers for `SharedArrayBuffer`
+- `npx expo export --platform web` already produces a valid bundle
+
+### Root Cause
+
+`expo-sqlite`'s synchronous API (`openDatabaseSync`, `execSync`, `.all()`, `.get()`) internally calls `Atomics.wait()`. Browsers block `Atomics.wait()` on the main thread. The async API (`openDatabaseAsync`, `execAsync`) uses `Atomics.waitAsync()` instead, which is permitted on the main thread and works in wa-sqlite.
+
+### Tasks
+
+1. **Database client (`src/shared/database/client.ts`)**
+   - Replace `SQLite.openDatabaseSync` with `SQLite.openDatabaseAsync`
+   - Make `initDatabase()` fully async using `execAsync` for all `CREATE TABLE` and `CREATE INDEX` statements
+   - Replace `drizzle(sqlite, ...)` with the async Drizzle driver (`drizzle(sqlite, { schema })` — check if `drizzle-orm/expo-sqlite` exports an async variant or if a raw `ExpoSQLiteDatabase` wrapper is needed)
+   - Ensure `initDatabase()` is `await`-ed before any store action runs (wire into app startup in `App.tsx`)
+
+2. **Blood sugar repository (`src/features/blood_sugar/repository.ts`)**
+   - Change all methods to `async`: `getAll()`, `add()`, `update()`, `delete()`
+   - Replace synchronous Drizzle calls (`.all()`, `.get()`) with their async equivalents (`.then()` / `await`)
+
+3. **Food log repository (`src/features/food_log/repository.ts`)**
+   - Same async migration as blood sugar repository
+
+4. **Weight repository (`src/features/weight/repository.ts`)**
+   - Same async migration
+
+5. **Settings repository (`src/features/settings/repository.ts`)**
+   - Same async migration; `getSettings()` and `saveSettings()` become `async`
+
+6. **All Zustand stores**
+   - `src/features/blood_sugar/store.ts` — `await` all repository calls in `add`, `update`, `delete`, `fetchAll`
+   - `src/features/food_log/store.ts` — same
+   - `src/features/weight/store.ts` — same
+   - `src/features/settings/store.ts` — same
+
+7. **Web fallbacks for native-only UI**
+   - `@react-native-community/datetimepicker` has no web support; wrap usage in all three form screens with `Platform.OS === 'web'` guard:
+     - Web: render `<input type="date">` / `<input type="time">` HTML inputs styled with `StyleSheet`
+     - Native: render existing `DateTimePicker` (unchanged)
+   - Create a shared `DateTimeInput` component at `src/shared/components/DateTimeInput.tsx` to avoid duplicating the Platform branch in every form
+   - `expo-image-picker` — camera and gallery are unavailable on web; hide the photo picker section when `Platform.OS === 'web'` (food form only)
+   - `expo-sharing` — not available on web; replace with a browser download (`<a download>` via `Linking.openURL` with a `data:` URI) when `Platform.OS === 'web'`
+   - `expo-document-picker` — not available on web; replace with `<input type="file" accept=".json">` for the import flow
+
+8. **App startup wiring (`App.tsx` or `index.ts`)**
+   - `initDatabase()` must be `await`-ed before the navigation tree renders
+   - Add a loading state: show a splash/spinner while the DB is initialising; navigate to the app once ready
+
+9. **Test updates**
+   - Repository mocks in existing tests: all mock functions (`mockAdd`, `mockUpdate`, etc.) must return `Promise.resolve()` rather than `undefined` so `await store.add(...)` resolves correctly
+   - Add a smoke test for `initDatabase()` (async call completes without error)
+
+10. **Web build and serving**
+    - Build: `npx expo export --platform web` → `dist/`
+    - Serve with COOP/COEP headers: `npx serve dist --config serve.json` (or any static server that injects the headers)
+    - Verify the app loads and data persists in the browser's IndexedDB (wa-sqlite backend)
+
+### Acceptance Criteria
+
+- [ ] `npx expo export --platform web` produces a clean build with no errors
+- [ ] App loads in Safari and Chrome on macOS without a blank screen
+- [ ] `initDatabase()` completes and all four tables are created on first load
+- [ ] User can log a blood sugar reading, food entry, and weight entry via the browser
+- [ ] Entries persist across page reloads (IndexedDB via wa-sqlite)
+- [ ] Date/time pickers work on web (HTML `<input>` fallback)
+- [ ] Food photo section is hidden on web (no crash, no broken UI)
+- [ ] Export produces a downloadable JSON file (browser download, not share sheet)
+- [ ] Import accepts a `.json` file via `<input type="file">`
+- [ ] All existing iOS/Android tests still pass (no regressions from async migration)
+- [ ] TypeScript compiles with no errors after async migration
+- [ ] `v1.2.0` tag created
 
 ---
 

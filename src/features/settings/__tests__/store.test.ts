@@ -1,9 +1,9 @@
 import { useSettingsStore } from '../store';
 import type { AppSettings } from '../../../shared/database/schema';
 
-const mockGet = jest.fn<AppSettings | null, []>();
-const mockUpsert = jest.fn<AppSettings, [any]>();
-const mockClearAll = jest.fn<void, []>();
+const mockGet = jest.fn<Promise<AppSettings | null>, []>();
+const mockUpsert = jest.fn<Promise<AppSettings>, [any]>();
+const mockClearAll = jest.fn<Promise<void>, []>();
 
 jest.mock('../repository', () => ({
   settingsRepository: {
@@ -30,11 +30,11 @@ beforeEach(() => {
 
 describe('useSettingsStore', () => {
   describe('load', () => {
-    it('sets settings and target values when a row exists', () => {
+    it('sets settings and target values when a row exists', async () => {
       const row = makeSettings({ targetMinMmol: 4.0, targetMaxMmol: 8.0 });
-      mockGet.mockReturnValue(row);
+      mockGet.mockResolvedValue(row);
 
-      useSettingsStore.getState().load();
+      await useSettingsStore.getState().load();
 
       expect(mockGet).toHaveBeenCalledTimes(1);
       expect(useSettingsStore.getState().settings).toEqual(row);
@@ -42,10 +42,10 @@ describe('useSettingsStore', () => {
       expect(useSettingsStore.getState().targetMaxMmol).toBe(8.0);
     });
 
-    it('leaves settings null when no row exists', () => {
-      mockGet.mockReturnValue(null);
+    it('leaves settings null when no row exists', async () => {
+      mockGet.mockResolvedValue(null);
 
-      useSettingsStore.getState().load();
+      await useSettingsStore.getState().load();
 
       expect(useSettingsStore.getState().settings).toBeNull();
       expect(useSettingsStore.getState().targetMinMmol).toBe(3.9);
@@ -54,11 +54,11 @@ describe('useSettingsStore', () => {
   });
 
   describe('update', () => {
-    it('calls upsert and updates store state', () => {
+    it('calls upsert and updates store state', async () => {
       const saved = makeSettings({ targetMinMmol: 5.0, targetMaxMmol: 9.0 });
-      mockUpsert.mockReturnValue(saved);
+      mockUpsert.mockResolvedValue(saved);
 
-      useSettingsStore.getState().update({
+      await useSettingsStore.getState().update({
         userName: 'Tom',
         targetMinMmol: 5.0,
         targetMaxMmol: 9.0,
@@ -76,14 +76,15 @@ describe('useSettingsStore', () => {
   });
 
   describe('clearAll', () => {
-    it('calls repository clearAll and resets state to defaults', () => {
+    it('calls repository clearAll and resets state to defaults', async () => {
       useSettingsStore.setState({
         settings: makeSettings(),
         targetMinMmol: 5.0,
         targetMaxMmol: 9.0,
       });
+      mockClearAll.mockResolvedValue(undefined);
 
-      useSettingsStore.getState().clearAll();
+      await useSettingsStore.getState().clearAll();
 
       expect(mockClearAll).toHaveBeenCalledTimes(1);
       expect(useSettingsStore.getState().settings).toBeNull();

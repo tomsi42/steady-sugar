@@ -12,13 +12,22 @@
 
 | Component | Choice | Rationale |
 |-----------|--------|-----------|
-| **Framework** | React Native + Expo (TypeScript) | Single codebase for iOS + Android, large ecosystem, excellent DX |
+| **Framework** | React Native + Expo (TypeScript) | Single codebase for iOS, Android, and web, large ecosystem, excellent DX |
 | **State Management** | Zustand | Lightweight, TypeScript-first, scales well for data-heavy apps |
 | **Database** | expo-sqlite + Drizzle ORM | Type-safe SQL, generates TypeScript types from schema, excellent Expo integration |
 | **Charting** | Victory Native | Composable, interactive line charts with flexible axis support |
 | **UI Framework** | React Native Paper (Material 3 theme) | Works on both platforms, warm lifestyle feel (not clinical) |
 | **Navigation** | React Navigation (bottom tabs + stack) | De-facto standard for React Native, flexible and well-maintained |
 | **Local Storage** | SQLite via expo-sqlite | Fast, private, works offline always |
+| **Web renderer** | react-native-web + expo web | Enables running the app in a browser (macOS via Safari/Chrome) |
+
+### Target Platforms
+
+| Platform | Status |
+|----------|--------|
+| iOS | Supported (v1.0.0+) |
+| Android | Supported (v1.0.0+) |
+| Web (macOS browser) | Planned (v1.2.0) |
 
 ---
 
@@ -271,6 +280,14 @@ The following features are planned for v1.1.0:
 1. **Norwegian localization** — Auto-detected from device locale; falls back to English
 2. **Food photos** — Optional camera/gallery photo attachment on food entries; stored locally
 3. **Data export/import** — JSON backup (photos excluded) via native share sheet; merge-import without overwriting existing records
+
+## 8b. v1.2.0 Features
+
+The following features are planned for v1.2.0:
+
+1. **Web support (macOS browser)** — Run the app in a browser tab on macOS (Safari, Chrome). Requires migrating the entire data layer from the synchronous `expo-sqlite` API (`openDatabaseSync`, `execSync`) to the async API (`openDatabaseAsync`, `execAsync`), which is the only SQLite API available in the browser (wa-sqlite/WebAssembly). Also requires web-compatible fallbacks for native-only UI (date/time pickers).
+
+   **Why this is non-trivial:** The synchronous SQLite API blocks on `Atomics.wait()`, which browsers prohibit on the main thread. Every repository call, store action, and init routine must become `async`/`await`. The Metro bundler config (`metro.config.js`) and COOP/COEP headers for `SharedArrayBuffer` are already in place from exploratory work in v1.1.1.
 
 ## 8a. Removed from backlog
 

@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { dataRepository } from '../dataRepository';
@@ -12,7 +13,7 @@ interface BackupPayload {
   bloodSugarReadings: Array<{
     id: number;
     valueMmol: number;
-    timestamp: number;
+    timestamp: string;
     context: string;
     notes: string;
   }>;
@@ -20,12 +21,12 @@ interface BackupPayload {
     id: number;
     name: string;
     category: string;
-    timestamp: number;
+    timestamp: string;
   }>;
   weightEntries: Array<{
     id: number;
     valueKg: number;
-    timestamp: number;
+    timestamp: string;
     notes: string;
   }>;
   settings: {
@@ -53,9 +54,14 @@ export async function importData(): Promise<ImportResult> {
 
   let raw: string;
   try {
-    raw = await FileSystem.readAsStringAsync(picked.assets[0].uri, {
-      encoding: FileSystem.EncodingType.UTF8,
-    });
+    if (Platform.OS === 'web') {
+      // On web, document picker returns a blob URI — fetch is the right way to read it
+      raw = await fetch(picked.assets[0].uri).then((r) => r.text());
+    } else {
+      raw = await FileSystem.readAsStringAsync(picked.assets[0].uri, {
+        encoding: FileSystem.EncodingType.UTF8,
+      });
+    }
   } catch {
     return { type: 'error' };
   }
@@ -72,8 +78,8 @@ export async function importData(): Promise<ImportResult> {
   let count = 0;
 
   for (const r of payload.bloodSugarReadings) {
-    if (!dataRepository.bloodSugarExists(r.id)) {
-      dataRepository.insertBloodSugar({
+    if (!await dataRepository.bloodSugarExists(r.id)) {
+      await dataRepository.insertBloodSugar({
         id: r.id,
         valueMmol: r.valueMmol,
         timestamp: new Date(r.timestamp),
@@ -85,8 +91,8 @@ export async function importData(): Promise<ImportResult> {
   }
 
   for (const f of payload.foodEntries) {
-    if (!dataRepository.foodExists(f.id)) {
-      dataRepository.insertFood({
+    if (!await dataRepository.foodExists(f.id)) {
+      await dataRepository.insertFood({
         id: f.id,
         name: f.name,
         category: f.category as 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'treat' | 'drink' | 'alcohol',
@@ -98,8 +104,8 @@ export async function importData(): Promise<ImportResult> {
   }
 
   for (const w of payload.weightEntries) {
-    if (!dataRepository.weightExists(w.id)) {
-      dataRepository.insertWeight({
+    if (!await dataRepository.weightExists(w.id)) {
+      await dataRepository.insertWeight({
         id: w.id,
         valueKg: w.valueKg,
         timestamp: new Date(w.timestamp),
@@ -109,8 +115,8 @@ export async function importData(): Promise<ImportResult> {
     }
   }
 
-  if (payload.settings && !dataRepository.settingsExist()) {
-    dataRepository.insertSettings(payload.settings);
+  if (payload.settings && !await dataRepository.settingsExist()) {
+    await dataRepository.insertSettings(payload.settings);
   }
 
   return { type: 'success', count };

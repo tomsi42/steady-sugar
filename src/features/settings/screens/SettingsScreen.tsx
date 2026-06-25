@@ -47,13 +47,13 @@ export function SettingsScreen({ navigation }: Props) {
     };
   }
 
-  function handleNameBlur() {
+  async function handleNameBlur() {
     const trimmed = nameText.trim();
     if (!trimmed) return;
-    update({ ...currentData(), userName: trimmed });
+    await update({ ...currentData(), userName: trimmed });
   }
 
-  function handleRangeBlur() {
+  async function handleRangeBlur() {
     const min = parseFloat(minText);
     const max = parseFloat(maxText);
     if (isNaN(min) || isNaN(max) || min <= 0 || max <= 0) {
@@ -65,12 +65,12 @@ export function SettingsScreen({ navigation }: Props) {
       return;
     }
     setRangeError('');
-    update({ ...currentData(), targetMinMmol: min, targetMaxMmol: max });
+    await update({ ...currentData(), targetMinMmol: min, targetMaxMmol: max });
   }
 
-  function handleClearAll() {
+  async function handleClearAll() {
     setConfirmVisible(false);
-    clearAllSettings();
+    await clearAllSettings();
     useBloodSugarStore.setState({ readings: [] });
     useFoodLogStore.setState({ entries: [] });
     useWeightStore.setState({ entries: [] });
@@ -98,9 +98,11 @@ export function SettingsScreen({ navigation }: Props) {
       setSnackMessage(t('settings.import_success', { count: result.count }));
     }
     // Reload all stores so the log reflects newly imported data
-    useBloodSugarStore.getState().load();
-    useFoodLogStore.getState().load();
-    useWeightStore.getState().load();
+    await Promise.all([
+      useBloodSugarStore.getState().load(),
+      useFoodLogStore.getState().load(),
+      useWeightStore.getState().load(),
+    ]);
   }
 
   return (

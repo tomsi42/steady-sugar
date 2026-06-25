@@ -3,8 +3,8 @@ import { render, fireEvent, act } from '@testing-library/react-native';
 import { PaperProvider } from 'react-native-paper';
 import { FoodFormScreen } from '../screens/FoodFormScreen';
 
-const mockAdd = jest.fn();
-const mockUpdate = jest.fn();
+const mockAdd = jest.fn().mockResolvedValue(undefined);
+const mockUpdate = jest.fn().mockResolvedValue(undefined);
 
 jest.mock('../store', () => ({
   useFoodLogStore: (selector: (s: any) => any) =>

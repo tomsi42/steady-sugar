@@ -48,7 +48,7 @@ describe('exportData', () => {
     expect(json.bloodSugarReadings[0]).toEqual({
       id: 1,
       valueMmol: 5.5,
-      timestamp: ts.getTime(),
+      timestamp: ts.toISOString(),
       context: 'fasting',
       notes: '',
     });
@@ -79,7 +79,7 @@ describe('exportData', () => {
     expect(json.weightEntries[0]).toEqual({
       id: 1,
       valueKg: 82.4,
-      timestamp: ts.getTime(),
+      timestamp: ts.toISOString(),
       notes: 'after workout',
     });
   });

@@ -31,13 +31,13 @@ const validBackup = {
   version: 1,
   exportedAt: '2026-06-24T10:00:00.000Z',
   bloodSugarReadings: [
-    { id: 1, valueMmol: 5.5, timestamp: 1750000000000, context: 'fasting', notes: '' },
+    { id: 1, valueMmol: 5.5, timestamp: '2026-06-17T08:30:00.000Z', context: 'fasting', notes: '' },
   ],
   foodEntries: [
-    { id: 1, name: 'Oatmeal', category: 'breakfast', timestamp: 1750000000000 },
+    { id: 1, name: 'Oatmeal', category: 'breakfast', timestamp: '2026-06-17T08:00:00.000Z' },
   ],
   weightEntries: [
-    { id: 1, valueKg: 82.4, timestamp: 1750000000000, notes: '' },
+    { id: 1, valueKg: 82.4, timestamp: '2026-06-17T12:00:00.000Z', notes: '' },
   ],
   settings: { id: 1, userName: 'Tom', targetMinMmol: 3.9, targetMaxMmol: 7.8 },
 };

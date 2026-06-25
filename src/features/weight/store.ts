@@ -4,42 +4,42 @@ import { weightRepository } from './repository';
 
 interface WeightState {
   entries: WeightEntry[];
-  load: () => void;
-  add: (data: Omit<NewWeightEntry, 'id'>) => WeightEntry;
-  update: (id: number, data: Partial<Omit<NewWeightEntry, 'id'>>) => WeightEntry;
-  remove: (id: number) => void;
-  restore: (data: Omit<NewWeightEntry, 'id'>) => void;
+  load: () => Promise<void>;
+  add: (data: Omit<NewWeightEntry, 'id'>) => Promise<WeightEntry>;
+  update: (id: number, data: Partial<Omit<NewWeightEntry, 'id'>>) => Promise<WeightEntry>;
+  remove: (id: number) => Promise<void>;
+  restore: (data: Omit<NewWeightEntry, 'id'>) => Promise<void>;
 }
 
 export const useWeightStore = create<WeightState>((set) => ({
   entries: [],
 
-  load: () => {
-    const entries = weightRepository.getAll();
+  load: async () => {
+    const entries = await weightRepository.getAll();
     set({ entries });
   },
 
-  add: (data) => {
-    const created = weightRepository.insert(data);
+  add: async (data) => {
+    const created = await weightRepository.insert(data);
     set((state) => ({ entries: [created, ...state.entries] }));
     return created;
   },
 
-  update: (id, data) => {
-    const updated = weightRepository.update(id, data);
+  update: async (id, data) => {
+    const updated = await weightRepository.update(id, data);
     set((state) => ({
       entries: state.entries.map((e) => (e.id === id ? updated : e)),
     }));
     return updated;
   },
 
-  remove: (id) => {
-    weightRepository.delete(id);
+  remove: async (id) => {
+    await weightRepository.delete(id);
     set((state) => ({ entries: state.entries.filter((e) => e.id !== id) }));
   },
 
-  restore: (data) => {
-    const created = weightRepository.insert(data);
+  restore: async (data) => {
+    const created = await weightRepository.insert(data);
     set((state) => {
       const next = [created, ...state.entries];
       next.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());

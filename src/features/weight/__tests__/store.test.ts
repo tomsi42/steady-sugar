@@ -1,10 +1,10 @@
 import { useWeightStore } from '../store';
 import type { WeightEntry } from '../../../shared/database/schema';
 
-const mockGetAll = jest.fn<WeightEntry[], []>();
-const mockInsert = jest.fn<WeightEntry, [any]>();
-const mockUpdate = jest.fn<WeightEntry, [number, any]>();
-const mockDelete = jest.fn<void, [number]>();
+const mockGetAll = jest.fn<Promise<WeightEntry[]>, []>();
+const mockInsert = jest.fn<Promise<WeightEntry>, [any]>();
+const mockUpdate = jest.fn<Promise<WeightEntry>, [number, any]>();
+const mockDelete = jest.fn<Promise<void>, [number]>();
 
 jest.mock('../repository', () => ({
   weightRepository: {
@@ -31,11 +31,11 @@ beforeEach(() => {
 
 describe('useWeightStore', () => {
   describe('load', () => {
-    it('fetches entries from repository and sets state', () => {
+    it('fetches entries from repository and sets state', async () => {
       const entries = [makeEntry(1), makeEntry(2, 79.5)];
-      mockGetAll.mockReturnValue(entries);
+      mockGetAll.mockResolvedValue(entries);
 
-      useWeightStore.getState().load();
+      await useWeightStore.getState().load();
 
       expect(mockGetAll).toHaveBeenCalledTimes(1);
       expect(useWeightStore.getState().entries).toEqual(entries);
@@ -43,11 +43,11 @@ describe('useWeightStore', () => {
   });
 
   describe('add', () => {
-    it('inserts an entry and prepends it to state', () => {
+    it('inserts an entry and prepends it to state', async () => {
       const newEntry = makeEntry(1, 82.3);
-      mockInsert.mockReturnValue(newEntry);
+      mockInsert.mockResolvedValue(newEntry);
 
-      useWeightStore.getState().add({
+      await useWeightStore.getState().add({
         valueKg: 82.3,
         timestamp: newEntry.timestamp,
         notes: '',
@@ -59,13 +59,13 @@ describe('useWeightStore', () => {
   });
 
   describe('update', () => {
-    it('updates an entry in state', () => {
+    it('updates an entry in state', async () => {
       const original = makeEntry(1, 80.0);
       const updated = { ...original, valueKg: 79.5 };
       useWeightStore.setState({ entries: [original] });
-      mockUpdate.mockReturnValue(updated);
+      mockUpdate.mockResolvedValue(updated);
 
-      useWeightStore.getState().update(1, { valueKg: 79.5 });
+      await useWeightStore.getState().update(1, { valueKg: 79.5 });
 
       expect(mockUpdate).toHaveBeenCalledWith(1, { valueKg: 79.5 });
       expect(useWeightStore.getState().entries[0].valueKg).toBe(79.5);
@@ -73,12 +73,12 @@ describe('useWeightStore', () => {
   });
 
   describe('remove', () => {
-    it('deletes an entry and removes it from state', () => {
+    it('deletes an entry and removes it from state', async () => {
       const entry = makeEntry(1);
       useWeightStore.setState({ entries: [entry] });
-      mockDelete.mockImplementation(() => {});
+      mockDelete.mockResolvedValue(undefined);
 
-      useWeightStore.getState().remove(1);
+      await useWeightStore.getState().remove(1);
 
       expect(mockDelete).toHaveBeenCalledWith(1);
       expect(useWeightStore.getState().entries).toHaveLength(0);
@@ -86,16 +86,16 @@ describe('useWeightStore', () => {
   });
 
   describe('restore', () => {
-    it('re-inserts a deleted entry and sorts by timestamp descending', () => {
+    it('re-inserts a deleted entry and sorts by timestamp descending', async () => {
       const older = makeEntry(2, 81.0);
       older.timestamp = new Date('2026-06-16T12:00:00');
       useWeightStore.setState({ entries: [older] });
 
       const restored = makeEntry(3, 80.0);
       restored.timestamp = new Date('2026-06-17T12:00:00');
-      mockInsert.mockReturnValue(restored);
+      mockInsert.mockResolvedValue(restored);
 
-      useWeightStore.getState().restore({
+      await useWeightStore.getState().restore({
         valueKg: 80.0,
         timestamp: restored.timestamp,
         notes: '',
