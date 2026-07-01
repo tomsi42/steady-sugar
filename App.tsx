@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { theme } from './src/app/theme';
 import { AppNavigator } from './src/app/navigation';
 import { initDatabase } from './src/shared/database/client';
+import { initSkiaWeb } from './src/shared/skia/initSkiaWeb';
 import { useSettingsStore } from './src/features/settings/store';
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
 
   useEffect(() => {
     async function setup() {
+      await initSkiaWeb();
       await initDatabase();
       await useSettingsStore.getState().load();
       const s = useSettingsStore.getState().settings;

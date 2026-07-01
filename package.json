@@ -50,7 +50,8 @@
     "test:ci": "jest",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate"
+    "db:migrate": "drizzle-kit migrate",
+    "postinstall": "node scripts/copy-canvaskit-wasm.js"
   },
   "jest": {
     "preset": "jest-expo",

@@ -1,21 +1,24 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { Text, SegmentedButtons, Menu, Button } from 'react-native-paper';
-import { CartesianChart, Line } from 'victory-native';
-import { Circle, Rect, Text as SkiaText, matchFont } from '@shopify/react-native-skia';
 import { useTranslation } from 'react-i18next';
 
 import { useBloodSugarStore } from '../../blood_sugar/store';
 import { useFoodLogStore } from '../../food_log/store';
 import { useWeightStore } from '../../weight/store';
 import { useSettingsStore } from '../../settings/store';
-import { colorForBloodSugar } from '../../blood_sugar/utils/colorForBloodSugar';
 import {
   filterByTimeRange,
   getTimeRangeBounds,
   type TimeRange,
 } from '../utils/filterByTimeRange';
 import { groupMealMarkers } from '../utils/groupMealMarkers';
+import { theme } from '../../../app/theme';
+
+// Lazy-loaded so victory-native/@shopify/react-native-skia (and the Skia singleton they
+// construct at module-evaluation time) are only imported after LoadSkiaWeb() has resolved
+// on web — see GraphChart.tsx and App.tsx's initSkiaWeb() call.
+const GraphChart = lazy(() => import('../components/GraphChart'));
 
 type ChartType = 'blood_sugar' | 'weight';
 
@@ -41,14 +44,6 @@ export function GraphScreen() {
     weightLoad();
     settingsLoad();
   }, [bloodSugarLoad, foodLoad, weightLoad, settingsLoad]);
-
-  const font = useMemo(() => {
-    try {
-      return matchFont({ fontSize: 10 });
-    } catch {
-      return null;
-    }
-  }, []);
 
   const [domainStart, domainEnd] = useMemo(() => {
     const [start, end] = getTimeRangeBounds(timeRange);
@@ -154,96 +149,20 @@ export function GraphScreen() {
 
       {hasData ? (
         <View style={styles.chartContainer} testID="chart-container">
-          {isBloodSugar ? (
-            <CartesianChart
-              data={bsChartData}
-              xKey="timestamp"
-              yKeys={['value']}
-              domain={{ x: [domainStart, domainEnd] }}
-              domainPadding={{ top: 10, bottom: 8 }}
-              axisOptions={{
-                font,
-                tickCount: { x: xTickCount, y: 5 },
-                formatXLabel: (val) => formatXLabel(val as number),
-              }}
-            >
-              {({ points, chartBounds, xScale, yScale }) => {
-                const bandTop = yScale(targetMax);
-                const bandBottom = yScale(targetMin);
-                return (
-                  <>
-                    <Rect
-                      x={chartBounds.left}
-                      y={bandTop}
-                      width={chartBounds.right - chartBounds.left}
-                      height={bandBottom - bandTop}
-                      color="rgba(76, 175, 80, 0.3)"
-                    />
-                    <Line
-                      points={points.value}
-                      color="#00897B"
-                      strokeWidth={2}
-                    />
-                    {points.value.map((point, i) =>
-                      point.y !== null && point.yValue !== null ? (
-                        <Circle
-                          key={i}
-                          cx={point.x}
-                          cy={point.y}
-                          r={5}
-                          color={colorForBloodSugar(point.yValue as number)}
-                        />
-                      ) : null,
-                    )}
-                    {mealMarkers.map((marker, i) => {
-                      const mx = xScale(marker.timestamp.getTime());
-                      if (mx < chartBounds.left || mx > chartBounds.right) return null;
-                      const barH = 8;
-                      const barY = chartBounds.bottom - barH;
-                      return (
-                        <React.Fragment key={i}>
-                          <Rect x={mx - 1.5} y={barY} width={3} height={barH} color="#FF8F00" />
-                          {marker.count > 1 && font && (
-                            <SkiaText
-                              font={font}
-                              text={`×${marker.count}`}
-                              x={mx + 4}
-                              y={barY + 6}
-                              color="#FF8F00"
-                            />
-                          )}
-                        </React.Fragment>
-                      );
-                    })}
-                  </>
-                );
-              }}
-            </CartesianChart>
-          ) : (
-            <CartesianChart
-              data={weightChartData}
-              xKey="timestamp"
-              yKeys={['value']}
-              domain={{ x: [domainStart, domainEnd] }}
-              domainPadding={10}
-              axisOptions={{
-                font,
-                tickCount: { x: xTickCount, y: 5 },
-                formatXLabel: (val) => formatXLabel(val as number),
-              }}
-            >
-              {({ points }) => (
-                <>
-                  <Line points={points.value} color="#5C6BC0" strokeWidth={2} />
-                  {points.value.map((point, i) =>
-                    point.y !== null ? (
-                      <Circle key={i} cx={point.x} cy={point.y} r={5} color="#5C6BC0" />
-                    ) : null,
-                  )}
-                </>
-              )}
-            </CartesianChart>
-          )}
+          <Suspense fallback={<ActivityIndicator size="large" color={theme.colors.primary} />}>
+            <GraphChart
+              isBloodSugar={isBloodSugar}
+              bsChartData={bsChartData}
+              weightChartData={weightChartData}
+              domainStart={domainStart}
+              domainEnd={domainEnd}
+              xTickCount={xTickCount}
+              formatXLabel={formatXLabel}
+              targetMin={targetMin}
+              targetMax={targetMax}
+              mealMarkers={mealMarkers}
+            />
+          </Suspense>
         </View>
       ) : (
         <View style={styles.emptyContainer} testID="no-data">
