@@ -24,6 +24,7 @@
 | M9 | Data Export / Import | JSON backup and restore via native share sheet | v1.1.0 |
 | M10 | Web Support | Async data layer + web UI fallbacks; app runs in macOS browser | v1.2.0 |
 | M11 | Contour CSV Import | Import blood sugar readings from a Contour meter's Norwegian CSV export | v1.2.1 |
+| M12 | Graph Navigation & Axis Labels | Previous/next period paging on the Graph screen; fixes missing web axis numbers | v1.3.0 |
 
 ---
 
@@ -478,6 +479,46 @@
 - [ ] A file with a non-matching header shows a clear error without corrupting existing data
 - [ ] Rows with an unparseable date or value are skipped without aborting the rest of the import
 - [ ] Import summary snackbar shows the count of readings added
+
+---
+
+## M12 — Graph Navigation & Axis Labels
+
+**Goal:** Users can page backward and forward through past periods on the Graph screen (day/week/30-day), and the chart's axis numbers (mmol/L, kg, dates) actually render — they were silently missing on web since M10.
+
+### Background: the missing axis numbers bug
+
+Investigating the original "legends" request revealed the Graph screen showed **zero axis numbers at all** on web — no mmol/L values on the left, no dates on the bottom, only gridlines, the target band, and the line/points. Root cause: `GraphChart.tsx` used `matchFont()`, which relies on Skia's system `FontMgr` — populated on native (real OS font matching) but always empty on web (`CanvasKit` ships no system fonts), so `matchFont()` silently returned `null` and every axis label was skipped (grid lines don't need a font; text does). Confirmed with the user this was web-only — native (Android) renders labels fine, so this was purely a M10 gap.
+
+**Fix:** replaced `matchFont()` with react-native-skia's `useFont()` hook, loading a bundled font file (`@expo-google-fonts/inter`, `Inter_400Regular.ttf`) instead of relying on system font lookup — works identically on native and web. Applied universally (not just web) per user's choice, removing the platform-specific font code entirely. Added `assets.d.ts` for the `*.ttf` module type Metro/TypeScript needs to resolve the font import.
+
+*(Also flagged by the user: a separate, still-open bug on the Android build unrelated to this — to be investigated later.)*
+
+### Design decisions (from grill-me session)
+
+1. **Navigation UI:** both arrow buttons (with a date-range label) and a swipe gesture on the chart — not just one or the other.
+2. **Boundaries:** "next" disables at the current period (no paging into the future); "previous" disables once paging back further would be entirely before the oldest record for the currently selected chart type (blood sugar vs. weight each have their own oldest-record boundary).
+3. **State reset:** switching the time-range control (Today/7 days/30 days) or chart type (Blood Sugar/Weight) always resets navigation back to the current period.
+4. **Quick return:** a "Today" text link appears next to the date label whenever navigated away from the current period, for one-tap return instead of repeated arrow taps.
+
+### Tasks
+
+1. `src/features/graph/utils/filterByTimeRange.ts` — add `shiftAnchor` (pages the anchor date by one period), `canGoNext`, `canGoPrevious` (oldest-record boundary check), `formatDateRangeLabel` (locale-aware label, e.g. "24 – 30 Jun" or "1. juli")
+2. `src/features/graph/screens/GraphScreen.tsx` — anchor state (defaults to `new Date()`), reset-on-range/type-change effect, prev/next/today handlers, navigation row UI (chevron `IconButton`s + label + conditional "Today" link), `Gesture.Pan()` swipe wired to the same handlers via `GestureDetector`
+3. `src/features/graph/components/GraphChart.tsx` — replace `matchFont` with `useFont(interRegular, 10)`
+4. `assets.d.ts` — ambient `declare module '*.ttf'` so TypeScript resolves the bundled font import
+5. i18n: `graph.jump_to_today` key (English + Norwegian)
+
+### Acceptance Criteria
+
+- [ ] Y-axis (mmol/L, kg) and X-axis (dates/hours) numbers render correctly on both web and native
+- [ ] Tapping the left/right chevrons pages the chart back/forward by one full period (day/week/30-days depending on the active range)
+- [ ] The date-range label above the chart accurately reflects the period shown
+- [ ] "Next" is disabled when viewing the current period; "previous" is disabled once further paging would show only guaranteed-empty periods
+- [ ] Switching time-range or chart type resets navigation back to the current period
+- [ ] The "Today" quick-return link appears only when navigated away from the current period, and returns to it in one tap
+- [ ] Swiping left/right on the chart pages forward/backward, matching the arrow buttons
+- [ ] Existing chart rendering (line, points, target band, meal markers) is unaffected by the font change
 
 ---
 

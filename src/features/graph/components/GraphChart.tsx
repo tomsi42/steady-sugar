@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { CartesianChart, Line } from 'victory-native';
-import { Circle, Rect, Text as SkiaText, matchFont } from '@shopify/react-native-skia';
+import { Circle, Rect, Text as SkiaText, useFont } from '@shopify/react-native-skia';
+import interRegular from '@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf';
 
 import { colorForBloodSugar } from '../../blood_sugar/utils/colorForBloodSugar';
 import type { MealMarker } from '../utils/groupMealMarkers';
@@ -40,13 +41,11 @@ export default function GraphChart({
   targetMax,
   mealMarkers,
 }: GraphChartProps) {
-  const font = useMemo(() => {
-    try {
-      return matchFont({ fontSize: 10 });
-    } catch {
-      return null;
-    }
-  }, []);
+  // A bundled font (rather than matchFont's system font lookup) is required for axis
+  // labels to render at all on web, where Skia's CanvasKit has no system fonts available.
+  // useFont resolves asynchronously, so `font` is null on the first render and the axis
+  // labels appear once it loads — same behavior on native, just effectively instant there.
+  const font = useFont(interRegular, 10);
 
   if (isBloodSugar) {
     return (

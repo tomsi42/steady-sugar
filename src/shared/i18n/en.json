@@ -87,6 +87,7 @@
     "range_today": "Today",
     "range_7days": "7 days",
     "range_30days": "30 days",
+    "jump_to_today": "Today",
     "empty_blood_sugar": "Log some blood sugar readings to see your chart",
     "empty_weight": "Log some weight entries to see your chart"
   },

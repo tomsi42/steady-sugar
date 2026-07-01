@@ -295,6 +295,13 @@ The following features are planned for v1.2.1:
 
    **Why this is non-trivial:** The synchronous SQLite API blocks on `Atomics.wait()`, which browsers prohibit on the main thread. Every repository call, store action, and init routine must become `async`/`await`. The Metro bundler config (`metro.config.js`) and COOP/COEP headers for `SharedArrayBuffer` are already in place from exploratory work in v1.1.1.
 
+## 8d. v1.3.0 Features
+
+The following features are planned for v1.3.0:
+
+1. **Graph navigation** — Previous/next chevron buttons and a swipe gesture on the Graph screen page the chart backward/forward by one full period (day/week/30-days, matching the active time-range selector). A date-range label above the chart shows the period in view; a "Today" quick-return link appears once navigated away from the current period. "Next" disables at the current period; "previous" disables once further paging would show only guaranteed-empty periods (based on the oldest record for the selected chart type). Switching time-range or chart type resets navigation back to the current period.
+2. **Axis label fix (web)** — Fixes a bug where the chart's Y-axis (mmol/L, kg) and X-axis (dates/hours) numbers never rendered on web, because `matchFont()` silently returns no font (Skia's web `CanvasKit` has no system fonts, unlike native). Replaced with `useFont()` loading a bundled font file, applied on both native and web.
+
 ## 8a. Removed from backlog
 
 The following features have been dropped and will not be built:

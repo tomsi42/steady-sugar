@@ -1,6 +1,10 @@
 import {
   filterByTimeRange,
   getTimeRangeBounds,
+  shiftAnchor,
+  canGoNext,
+  canGoPrevious,
+  formatDateRangeLabel,
   type TimeRange,
 } from '../utils/filterByTimeRange';
 
@@ -77,5 +81,80 @@ describe('filterByTimeRange', () => {
     const stringEntries = [{ id: 1, timestamp: '2026-06-23T10:00:00' }];
     const result = filterByTimeRange(stringEntries, 'today', NOW);
     expect(result).toHaveLength(1);
+  });
+});
+
+describe('shiftAnchor', () => {
+  it.each<[TimeRange, number]>([
+    ['today', 1],
+    ['7days', 7],
+    ['30days', 30],
+  ])('shifts %s by %d days per step', (range, days) => {
+    const next = shiftAnchor(range, NOW, -1);
+    expect(next.getTime()).toBe(NOW.getTime() - days * 24 * 60 * 60 * 1000);
+  });
+
+  it('shifts forward with direction 1', () => {
+    const next = shiftAnchor('7days', NOW, 1);
+    expect(next.getTime()).toBe(NOW.getTime() + 7 * 24 * 60 * 60 * 1000);
+  });
+
+  it('paging back then forward returns to the original anchor', () => {
+    const back = shiftAnchor('30days', NOW, -1);
+    const forward = shiftAnchor('30days', back, 1);
+    expect(forward.getTime()).toBe(NOW.getTime());
+  });
+});
+
+describe('canGoNext', () => {
+  it('is false when the anchor is the current day', () => {
+    expect(canGoNext('today', NOW, NOW)).toBe(false);
+  });
+
+  it('is true when the anchor is before the current day', () => {
+    const anchor = new Date('2026-06-20T14:00:00');
+    expect(canGoNext('today', anchor, NOW)).toBe(true);
+  });
+
+  it('ignores time-of-day when comparing to the current day', () => {
+    const lateInDay = new Date('2026-06-23T23:00:00');
+    expect(canGoNext('today', NOW, lateInDay)).toBe(false);
+  });
+});
+
+describe('canGoPrevious', () => {
+  it('is false when there is no data at all', () => {
+    expect(canGoPrevious('today', NOW, null)).toBe(false);
+  });
+
+  it('is true when the previous period would still reach the oldest data', () => {
+    const oldest = new Date('2026-06-01T00:00:00');
+    expect(canGoPrevious('7days', NOW, oldest)).toBe(true);
+  });
+
+  it('is false once paging back would be entirely before the oldest data', () => {
+    const oldest = new Date('2026-06-20T00:00:00'); // within the current 7-day window
+    // Current window: 06-16..06-23. Previous window would be 06-09..06-16 — entirely
+    // before the oldest record (06-20), so no more paging back should be allowed.
+    expect(canGoPrevious('7days', NOW, oldest)).toBe(false);
+  });
+
+  it('is true at the exact boundary where the previous period ends on the oldest data', () => {
+    const oldest = new Date('2026-06-16T00:00:00'); // equals the previous 7-day window's end
+    expect(canGoPrevious('7days', NOW, oldest)).toBe(true);
+  });
+});
+
+describe('formatDateRangeLabel', () => {
+  it('formats "today" as a single date', () => {
+    expect(formatDateRangeLabel('today', NOW, 'en-US')).toBe('June 23');
+  });
+
+  it('formats a same-month range without repeating the month', () => {
+    expect(formatDateRangeLabel('7days', NOW, 'en-US')).toBe('16 – Jun 23');
+  });
+
+  it('formats a cross-month range with both months shown', () => {
+    expect(formatDateRangeLabel('30days', NOW, 'en-US')).toBe('May 24 – Jun 23');
   });
 });

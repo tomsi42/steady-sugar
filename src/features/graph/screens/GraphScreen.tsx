@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator } from 'react-native';
-import { Text, SegmentedButtons, Menu, Button } from 'react-native-paper';
+import { Text, SegmentedButtons, Menu, Button, IconButton } from 'react-native-paper';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useTranslation } from 'react-i18next';
 
 import { useBloodSugarStore } from '../../blood_sugar/store';
@@ -10,10 +11,26 @@ import { useSettingsStore } from '../../settings/store';
 import {
   filterByTimeRange,
   getTimeRangeBounds,
+  shiftAnchor,
+  canGoNext,
+  canGoPrevious,
+  formatDateRangeLabel,
   type TimeRange,
 } from '../utils/filterByTimeRange';
 import { groupMealMarkers } from '../utils/groupMealMarkers';
 import { theme } from '../../../app/theme';
+import { locale } from '../../../shared/i18n';
+
+function oldestTimestamp(entries: { timestamp: Date | string | number }[]): Date | null {
+  if (entries.length === 0) return null;
+  return entries.reduce(
+    (min, e) => {
+      const t = new Date(e.timestamp);
+      return t < min ? t : min;
+    },
+    new Date(entries[0].timestamp),
+  );
+}
 
 // Lazy-loaded so victory-native/@shopify/react-native-skia (and the Skia singleton they
 // construct at module-evaluation time) are only imported after LoadSkiaWeb() has resolved
@@ -37,6 +54,7 @@ export function GraphScreen() {
   const [chartType, setChartType] = useState<ChartType>('blood_sugar');
   const [timeRange, setTimeRange] = useState<TimeRange>('today');
   const [menuVisible, setMenuVisible] = useState(false);
+  const [anchor, setAnchor] = useState<Date>(() => new Date());
 
   useEffect(() => {
     bloodSugarLoad();
@@ -45,24 +63,69 @@ export function GraphScreen() {
     settingsLoad();
   }, [bloodSugarLoad, foodLoad, weightLoad, settingsLoad]);
 
+  // Switching range or chart type always snaps navigation back to the current period.
+  useEffect(() => {
+    setAnchor(new Date());
+  }, [timeRange, chartType]);
+
+  const isBloodSugar = chartType === 'blood_sugar';
+
+  const oldestDataDate = useMemo(
+    () => oldestTimestamp(isBloodSugar ? readings : weightEntries),
+    [isBloodSugar, readings, weightEntries],
+  );
+  const canNext = canGoNext(timeRange, anchor);
+  const canPrev = canGoPrevious(timeRange, anchor, oldestDataDate);
+  const rangeLabel = formatDateRangeLabel(timeRange, anchor, locale);
+
+  function goToPrevious() {
+    if (!canPrev) return;
+    setAnchor((prev) => shiftAnchor(timeRange, prev, -1));
+  }
+
+  function goToNext() {
+    if (!canNext) return;
+    setAnchor((prev) => shiftAnchor(timeRange, prev, 1));
+  }
+
+  function jumpToToday() {
+    setAnchor(new Date());
+  }
+
+  const swipeGesture = useMemo(
+    () =>
+      Gesture.Pan()
+        .minDistance(40)
+        .onEnd((event) => {
+          if (event.translationX < 0) {
+            goToNext();
+          } else {
+            goToPrevious();
+          }
+        })
+        .runOnJS(true),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [timeRange, canNext, canPrev],
+  );
+
   const [domainStart, domainEnd] = useMemo(() => {
-    const [start, end] = getTimeRangeBounds(timeRange);
+    const [start, end] = getTimeRangeBounds(timeRange, anchor);
     return [start.getTime(), end.getTime()];
-  }, [timeRange]);
+  }, [timeRange, anchor]);
 
   const filteredReadings = useMemo(
-    () => filterByTimeRange(readings, timeRange),
-    [readings, timeRange],
+    () => filterByTimeRange(readings, timeRange, anchor),
+    [readings, timeRange, anchor],
   );
 
   const filteredFood = useMemo(
-    () => filterByTimeRange(foodEntries, timeRange),
-    [foodEntries, timeRange],
+    () => filterByTimeRange(foodEntries, timeRange, anchor),
+    [foodEntries, timeRange, anchor],
   );
 
   const filteredWeight = useMemo(
-    () => filterByTimeRange(weightEntries, timeRange),
-    [weightEntries, timeRange],
+    () => filterByTimeRange(weightEntries, timeRange, anchor),
+    [weightEntries, timeRange, anchor],
   );
 
   const bsChartData = useMemo(
@@ -92,10 +155,9 @@ export function GraphScreen() {
     if (timeRange === 'today') {
       return `${date.getHours()}h`;
     }
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString(locale, { month: 'short', day: 'numeric' });
   }
 
-  const isBloodSugar = chartType === 'blood_sugar';
   const hasData = isBloodSugar ? bsChartData.length > 0 : weightChartData.length > 0;
   const chartTypeLabel = isBloodSugar ? t('graph.blood_sugar') : t('graph.weight');
 
@@ -147,33 +209,60 @@ export function GraphScreen() {
         style={styles.segmented}
       />
 
-      {hasData ? (
-        <View style={styles.chartContainer} testID="chart-container">
-          <Suspense fallback={<ActivityIndicator size="large" color={theme.colors.primary} />}>
-            <GraphChart
-              isBloodSugar={isBloodSugar}
-              bsChartData={bsChartData}
-              weightChartData={weightChartData}
-              domainStart={domainStart}
-              domainEnd={domainEnd}
-              xTickCount={xTickCount}
-              formatXLabel={formatXLabel}
-              targetMin={targetMin}
-              targetMax={targetMax}
-              mealMarkers={mealMarkers}
-            />
-          </Suspense>
-        </View>
-      ) : (
-        <View style={styles.emptyContainer} testID="no-data">
-          <Text variant="bodyLarge" style={styles.emptyText}>
-            {t('log.empty_title')}
+      <View style={styles.navigationRow}>
+        <IconButton
+          icon="chevron-left"
+          onPress={goToPrevious}
+          disabled={!canPrev}
+          testID="graph-prev-button"
+        />
+        <View style={styles.navigationLabelContainer}>
+          <Text style={styles.navigationLabel} testID="graph-range-label">
+            {rangeLabel}
           </Text>
-          <Text variant="bodyMedium" style={styles.emptySubtext}>
-            {isBloodSugar ? t('graph.empty_blood_sugar') : t('graph.empty_weight')}
-          </Text>
+          {canNext && (
+            <Text style={styles.todayLink} onPress={jumpToToday} testID="graph-today-button">
+              {t('graph.jump_to_today')}
+            </Text>
+          )}
         </View>
-      )}
+        <IconButton
+          icon="chevron-right"
+          onPress={goToNext}
+          disabled={!canNext}
+          testID="graph-next-button"
+        />
+      </View>
+
+      <GestureDetector gesture={swipeGesture}>
+        {hasData ? (
+          <View style={styles.chartContainer} testID="chart-container">
+            <Suspense fallback={<ActivityIndicator size="large" color={theme.colors.primary} />}>
+              <GraphChart
+                isBloodSugar={isBloodSugar}
+                bsChartData={bsChartData}
+                weightChartData={weightChartData}
+                domainStart={domainStart}
+                domainEnd={domainEnd}
+                xTickCount={xTickCount}
+                formatXLabel={formatXLabel}
+                targetMin={targetMin}
+                targetMax={targetMax}
+                mealMarkers={mealMarkers}
+              />
+            </Suspense>
+          </View>
+        ) : (
+          <View style={styles.emptyContainer} testID="no-data">
+            <Text variant="bodyLarge" style={styles.emptyText}>
+              {t('log.empty_title')}
+            </Text>
+            <Text variant="bodyMedium" style={styles.emptySubtext}>
+              {isBloodSugar ? t('graph.empty_blood_sugar') : t('graph.empty_weight')}
+            </Text>
+          </View>
+        )}
+      </GestureDetector>
     </View>
   );
 }
@@ -183,6 +272,10 @@ const styles = StyleSheet.create({
   controls: { alignItems: 'flex-start', marginBottom: 12 },
   menuButtonContent: { flexDirection: 'row-reverse' },
   segmented: { marginBottom: 16 },
+  navigationRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  navigationLabelContainer: { flex: 1, alignItems: 'center' },
+  navigationLabel: { fontSize: 15, fontWeight: '600', color: '#212121' },
+  todayLink: { fontSize: 12, color: '#00897B', marginTop: 2 },
   chartContainer: { flex: 1 },
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   emptyText: { color: '#212121', marginBottom: 8 },
