@@ -20,10 +20,11 @@ import { useWeightStore } from '../../weight/store';
 import { exportData } from '../utils/exportData';
 import { importData } from '../utils/importData';
 import { importContourCsv, buildContourImportMessage } from '../utils/importContourCsv';
+import packageJson from '../../../../package.json';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
-const APP_VERSION = '1.1.0';
+const APP_VERSION = packageJson.version;
 
 export function SettingsScreen({ navigation }: Props) {
   const { t } = useTranslation();
