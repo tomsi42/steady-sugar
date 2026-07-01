@@ -23,6 +23,7 @@
 | M8 | Food Photos | Optional photo attachment on food entries | v1.1.0 |
 | M9 | Data Export / Import | JSON backup and restore via native share sheet | v1.1.0 |
 | M10 | Web Support | Async data layer + web UI fallbacks; app runs in macOS browser | v1.2.0 |
+| M11 | Contour CSV Import | Import blood sugar readings from a Contour meter's Norwegian CSV export | v1.2.1 |
 
 ---
 
@@ -430,6 +431,53 @@
 - [ ] All existing iOS/Android tests still pass (no regressions from async migration)
 - [ ] TypeScript compiles with no errors after async migration
 - [ ] `v1.2.0` tag created
+
+---
+
+## M11 — Contour CSV Import
+
+**Goal:** Users can import blood sugar readings directly from a CSV report exported by the Contour glucose meter app (Norwegian locale), without hand-entering historical readings.
+
+**Scope:** Norwegian-language Contour exports only for this milestone. English-language exports use different header/value strings and are out of scope until a real sample is available.
+
+**Sample format** (`ContourCSVReport_2026_01_07.csv`):
+```
+#,Dato og klokkeslett,BGValue[mmol/L],Måltidsmarkering,Datakilde,Notater,Aktivitet,Måltid[g],Medisin,Sted
+1,"08.06.2026 13:47:35","4,3","Ingen markering","Måler","","","","",""
+```
+- UTF-8 with BOM; fields comma-delimited, quoted where needed (the value field itself uses a comma decimal separator, e.g. `"4,3"` → 4.3)
+- Date/time format: `DD.MM.YYYY HH:MM:SS`, treated as local time (consistent with how the rest of the app constructs timestamps)
+
+### Design Decisions
+
+1. **Entry point:** A dedicated "Import from Contour" button on the Settings screen, separate from the existing JSON Import button.
+2. **Meal marking → context mapping:**
+   - `Ingen markering` (no marking) → `random`
+   - `Før måltid` (before meal) → `before_meal`
+   - `Etter måltid` (after meal) → `after_meal_2h`
+   - Any other/unrecognized marking → falls back to `random`, and the raw marking string is appended to the reading's `notes` so nothing is silently lost. These fallback rows are counted separately in the import summary.
+3. **Dedup on re-import:** A CSV row is treated as already-imported (and skipped) only if a reading with the exact same timestamp **and** value already exists — avoids re-importing the same file twice while not being so strict that two genuinely distinct readings could suppress each other.
+4. **Notes mapping:** The `Notater` (notes) and `Sted` (place) columns are both folded into the reading's `notes` field (place prefixed, e.g. `Sted: Husarveien`), along with the unknown-marking note when applicable. `Aktivitet`, `Måltid[g]`, `Medisin`, and `Datakilde` are not imported — no diagnostic value for this table.
+5. **Malformed rows:** A row with an unparseable date or value is skipped individually (counted as invalid) rather than failing the whole import. A file whose header doesn't match the expected Contour column names is rejected outright with an error.
+
+### Tasks
+
+1. `src/features/settings/utils/importContourCsv.ts` — CSV parser (quote-aware, BOM-stripping) + mapping logic + `importContourCsv()` entry point using `expo-document-picker` and `expo-file-system`
+2. `src/features/settings/dataRepository.ts` — add `bloodSugarExistsByTimestampValue(timestamp, valueMmol)` for the timestamp+value dedup check
+3. **Settings screen:** add "Import from Contour" button below the existing Import button, wired to `importContourCsv()`, with a snackbar summary (imported count, plus a note if any rows used the unknown-marking fallback)
+4. i18n strings for the new button/description/result messages in `en.json` and `nb.json`
+
+### Acceptance Criteria
+
+- [ ] Tapping "Import from Contour" opens the document picker
+- [ ] Importing the sample Contour CSV adds a blood sugar reading for every valid row, with correct value, timestamp, and mapped context
+- [ ] `Ingen markering` rows import as `random`, `Før måltid` rows as `before_meal`, `Etter måltid` rows as `after_meal_2h`
+- [ ] An unrecognized marking value imports as `random` and appends the raw marking to `notes`
+- [ ] `Notater` and `Sted` values appear in the imported reading's `notes`
+- [ ] Importing the same CSV file twice does not create duplicate readings
+- [ ] A file with a non-matching header shows a clear error without corrupting existing data
+- [ ] Rows with an unparseable date or value are skipped without aborting the rest of the import
+- [ ] Import summary snackbar shows the count of readings added
 
 ---
 

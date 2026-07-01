@@ -287,6 +287,12 @@ The following features are planned for v1.2.0:
 
 1. **Web support (macOS browser)** — Run the app in a browser tab on macOS (Safari, Chrome). Requires migrating the entire data layer from the synchronous `expo-sqlite` API (`openDatabaseSync`, `execSync`) to the async API (`openDatabaseAsync`, `execAsync`), which is the only SQLite API available in the browser (wa-sqlite/WebAssembly). Also requires web-compatible fallbacks for native-only UI (date/time pickers).
 
+## 8c. v1.2.1 Features
+
+The following features are planned for v1.2.1:
+
+1. **Contour CSV import** — Import blood sugar readings from a Contour glucose meter's CSV export (Norwegian locale only). Maps the meal-marking column to the app's context enum (`Ingen markering` → `random`, `Før måltid` → `before_meal`, `Etter måltid` → `after_meal_2h`, unrecognized values → `random` with the raw value recorded in notes). Dedups re-imports by exact timestamp + value match. Accessed via a dedicated "Import from Contour" button on the Settings screen, separate from JSON backup import.
+
    **Why this is non-trivial:** The synchronous SQLite API blocks on `Atomics.wait()`, which browsers prohibit on the main thread. Every repository call, store action, and init routine must become `async`/`await`. The Metro bundler config (`metro.config.js`) and COOP/COEP headers for `SharedArrayBuffer` are already in place from exploratory work in v1.1.1.
 
 ## 8a. Removed from backlog

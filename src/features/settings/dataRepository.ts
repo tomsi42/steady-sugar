@@ -68,6 +68,14 @@ export const dataRepository = {
     );
   },
 
+  bloodSugarExistsByTimestampValue: async (timestamp: number, valueMmol: number): Promise<boolean> => {
+    const row = await sqlite.getFirstAsync<any>(
+      'SELECT id FROM blood_sugar_readings WHERE timestamp = ? AND value_mmol = ?',
+      [timestamp, valueMmol],
+    );
+    return row !== null;
+  },
+
   foodExists: async (id: number): Promise<boolean> => {
     const row = await sqlite.getFirstAsync<any>(
       'SELECT id FROM food_entries WHERE id = ?',

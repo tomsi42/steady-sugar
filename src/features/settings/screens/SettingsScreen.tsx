@@ -19,6 +19,7 @@ import { useFoodLogStore } from '../../food_log/store';
 import { useWeightStore } from '../../weight/store';
 import { exportData } from '../utils/exportData';
 import { importData } from '../utils/importData';
+import { importContourCsv, buildContourImportMessage } from '../utils/importContourCsv';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
@@ -105,6 +106,15 @@ export function SettingsScreen({ navigation }: Props) {
     ]);
   }
 
+  async function handleImportContour() {
+    const result = await importContourCsv();
+    const message = buildContourImportMessage(t, result);
+    if (message) setSnackMessage(message);
+    if (result.type === 'success') {
+      await useBloodSugarStore.getState().load();
+    }
+  }
+
   return (
     <>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -178,6 +188,16 @@ export function SettingsScreen({ navigation }: Props) {
             {t('settings.import_button')}
           </Button>
           <Text style={styles.dataDesc}>{t('settings.import_desc')}</Text>
+          <Button
+            mode="outlined"
+            icon="file-delimited"
+            onPress={handleImportContour}
+            style={[styles.dataButton, styles.importButton]}
+            testID="import-contour-button"
+          >
+            {t('settings.import_contour_button')}
+          </Button>
+          <Text style={styles.dataDesc}>{t('settings.import_contour_desc')}</Text>
         </View>
 
         <View style={styles.section}>
