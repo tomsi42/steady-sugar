@@ -64,4 +64,4 @@ Apple typically reviews in 24–48 hours.
 - Camera and photo library permissions are declared — the privacy policy must explain that photos stay on-device and are not uploaded or shared.
 - No backend server, so the privacy story is straightforward: all data is stored locally on the user's device.
 - Bundle identifier: `net.pinglebo.steadysugar`
-- Current version: `1.0.0`, build number: `1` (see `app.json`)
+- Version and build number live in `app.json` (`expo.version`, `expo.ios.buildNumber`) — check there rather than here, this note goes stale on every release otherwise.
